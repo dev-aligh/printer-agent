@@ -1,0 +1,26 @@
+{
+  "name": "mirocab-print-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mirocab local silent-print agent for Windows 7 SP1 and Windows 10",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "package:win": "electron-builder --win nsis portable",
+    "package:dir": "electron-builder --win --dir",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "ir.mirocab.printagent",
+    "productName": "Mirocab Print Agent",
+    "asar": true,
+    "files": ["src/**/*", "README.md", "LICENSE"],
+    "win": { "target": [{ "target": "nsis", "arch": ["x64", "ia32"] }, { "target": "portable", "arch": ["x64", "ia32"] }] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "runAfterFinish": true },
+    "extraResources": [{ "from": "resources", "to": "resources", "filter": ["**/*"] }]
+  },
+  "engines": { "node": ">=16 <17" },
+  "devDependencies": { "electron": "22.3.27", "electron-builder": "24.13.3" }
+}
