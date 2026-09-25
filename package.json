@@ -21,6 +21,6 @@
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "runAfterFinish": true },
     "extraResources": [{ "from": "resources", "to": "resources", "filter": ["**/*"] }]
   },
-  "engines": { "node": ">=16 <17" },
+  "engines": { "node": ">=22 <23" },
   "devDependencies": { "electron": "22.3.27", "electron-builder": "24.13.3" }
 }
