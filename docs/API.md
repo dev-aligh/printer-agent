@@ -40,3 +40,5 @@ Agent پرینتر، کاغذ، جهت، تعداد نسخه، Scale و چهار
 ```
 
 برای همهٔ پرینترهای معمولی `html` الزامی و چاپ Chromium silent به Windows Spooler ارسال می‌شود. برای چاپ خام فقط در صورت ارسال صریح `rawMode: true`، مقدار `rawEscPosBase64` به RawPrint.exe فرستاده می‌شود؛ Agent برند پرینتر را حدس نمی‌زند. Raw mode تنها برای درایور/پرینتری که RAW یا ESC/POS را پشتیبانی می‌کند مناسب است.
+
+`POST /v1/print` بلافاصله با `202` و `job.id` برمی‌گردد. پنل با `GET /v1/print-jobs/{jobId}` وضعیت `queued`، `printing`، `completed` یا `failed` را می‌خواند. وضعیت `completed` یعنی Agent job را با موفقیت به Windows Spooler تحویل داده است؛ ویندوز برای همهٔ درایورها امکان اعلام لحظهٔ خروج فیزیکی برگه را فراهم نمی‌کند. رکورد وضعیت تا ۳۰ دقیقه در Agent نگه داشته می‌شود.

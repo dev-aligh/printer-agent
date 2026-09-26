@@ -1,6 +1,7 @@
 "use strict";
 const http = require("http");
 const { URL } = require("url");
+const { randomBytes } = require("crypto");
 const { resolveProfile, DOCUMENT_PROFILES } = require("./profiles");
 const { withCut } = require("./escpos");
 const { printRaw, getJobs, controlJob } = require("./raw-spooler");
@@ -10,6 +11,21 @@ function isAllowedOrigin(origin) { return origin === PANEL_ORIGIN; }
 function json(res, status, value) { res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(value)); }
 
 function createApi({ config, getPrinters, printHtml, resourcesPath }) {
+  const printJobs = new Map();
+  const jobView = (job) => ({
+    id: job.id,
+    status: job.status,
+    createdAt: job.createdAt,
+    startedAt: job.startedAt,
+    completedAt: job.completedAt,
+    message: job.message
+  });
+  const rememberJob = (job) => {
+    printJobs.set(job.id, job);
+    const expiry = setTimeout(() => printJobs.delete(job.id), 30 * 60 * 1000);
+    // A completed job record must not keep the agent process alive.
+    if (typeof expiry.unref === "function") expiry.unref();
+  };
   return http.createServer(async (req, res) => {
     const origin = req.headers.origin;
     if (origin && !isAllowedOrigin(origin)) return json(res, 403, { error: "origin_not_allowed" });
@@ -31,6 +47,11 @@ function createApi({ config, getPrinters, printHtml, resourcesPath }) {
     if (req.method === "GET" && jobMatch) return json(res, 200, { jobs: await getJobs(decodeURIComponent(jobMatch[1]), resourcesPath) });
     const controlMatch = url.pathname.match(/^\/v1\/printers\/(.+)\/jobs\/(\d+)\/(pause|resume|cancel)$/);
     if (req.method === "POST" && controlMatch) { await controlJob(decodeURIComponent(controlMatch[1]), Number(controlMatch[2]), controlMatch[3], resourcesPath); return json(res, 200, { ok: true }); }
+    const printJobMatch = url.pathname.match(/^\/v1\/print-jobs\/([a-f0-9]+)$/);
+    if (req.method === "GET" && printJobMatch) {
+      const printJob = printJobs.get(printJobMatch[1]);
+      return printJob ? json(res, 200, jobView(printJob)) : json(res, 404, { error: "print_job_not_found" });
+    }
     if (req.method !== "POST" || url.pathname !== "/v1/print") return json(res, 404, { error: "not_found" });
     let body = ""; for await (const chunk of req) { body += chunk; if (body.length > 8 * 1024 * 1024) return json(res, 413, { error: "payload_too_large" }); }
     try {
@@ -44,16 +65,35 @@ function createApi({ config, getPrinters, printHtml, resourcesPath }) {
       const profile = resolveProfile(profileId, saved);
       const printer = (await getPrinters()).find((item) => item.name === saved.printer);
       if (!printer) throw new Error("پرینتر انتخاب‌شده یافت نشد.");
-      if (job.rawEscPosBase64 && job.rawMode === true) {
-        let bytes = Buffer.from(job.rawEscPosBase64, "base64");
-        if (profile.cutAfterEachCopy || profile.cutAtEnd) bytes = withCut(bytes);
-        await printRaw(printer.name, bytes, resourcesPath);
-      } else {
-        if (typeof job.html !== "string" || job.html.length === 0) throw new Error("HTML چاپ ارسال نشده است.");
-        const jobs = profile.jobsPerCopy || 1;
-        for (let copy = 0; copy < profile.copies; copy++) for (let i = 0; i < jobs; i++) await printHtml(job.html, printer.name, profile);
-      }
-      return json(res, 202, { accepted: true, profile });
+      const printJob = {
+        id: randomBytes(16).toString("hex"), status: "queued", createdAt: new Date().toISOString(),
+        startedAt: null, completedAt: null, message: "در صف ارسال به چاپگر"
+      };
+      rememberJob(printJob);
+      queueMicrotask(async () => {
+        printJob.status = "printing";
+        printJob.startedAt = new Date().toISOString();
+        printJob.message = "در حال ارسال به چاپگر";
+        try {
+          if (job.rawEscPosBase64 && job.rawMode === true) {
+            let bytes = Buffer.from(job.rawEscPosBase64, "base64");
+            if (profile.cutAfterEachCopy || profile.cutAtEnd) bytes = withCut(bytes);
+            await printRaw(printer.name, bytes, resourcesPath);
+          } else {
+            if (typeof job.html !== "string" || job.html.length === 0) throw new Error("HTML چاپ ارسال نشده است.");
+            const jobs = profile.jobsPerCopy || 1;
+            for (let copy = 0; copy < profile.copies; copy++) for (let i = 0; i < jobs; i++) await printHtml(job.html, printer.name, profile);
+          }
+          printJob.status = "completed";
+          printJob.completedAt = new Date().toISOString();
+          printJob.message = "چاپ با موفقیت به Windows Spooler تحویل شد.";
+        } catch (error) {
+          printJob.status = "failed";
+          printJob.completedAt = new Date().toISOString();
+          printJob.message = error.message || "چاپ ناموفق بود.";
+        }
+      });
+      return json(res, 202, { accepted: true, job: jobView(printJob), profile });
     } catch (error) { return json(res, 400, { error: "print_failed", message: error.message }); }
   });
 }
