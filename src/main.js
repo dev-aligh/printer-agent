@@ -23,12 +23,38 @@ async function getPrinters() {
   const window = settingsWindow || new BrowserWindow({ show: false });
   try { return await window.webContents.getPrintersAsync(); } finally { if (window !== settingsWindow) window.destroy(); }
 }
+
+async function renderedRollHeightMm(win, profile) {
+  // The panel owns the document design. Measure its rendered flow height after
+  // fonts settle so a long thermal report becomes one correctly sized roll job
+  // instead of being clipped at the profile's old fixed height.
+  const heightPx = await win.webContents.executeJavaScript(`
+    (async () => {
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      const root = document.querySelector('[data-miro-print-root]') || document.body;
+      const rect = root.getBoundingClientRect();
+      return Math.ceil(Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        rect.bottom + window.scrollY,
+      ));
+    })()
+  `);
+  const contentMm = Math.ceil((Number(heightPx) * 25.4) / 96);
+  // 5 metres prevents a malformed document from making an unbounded spool job.
+  return Math.min(
+    5000,
+    Math.max(profile.rollHeightMm, 20, contentMm + profile.marginTop + profile.marginBottom),
+  );
+}
+
 async function printHtml(html, deviceName, profile) {
   const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
   try {
     await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
     const width = profile.paper === "thermal-58" ? 58 : profile.paper === "thermal-80" ? 80 : profile.rollWidthMm;
-    const pageSize = profile.paper === "A5" ? "A5" : { width: width * 1000, height: profile.rollHeightMm * 1000 };
+    const rollHeightMm = profile.paper === "A5" ? null : await renderedRollHeightMm(win, profile);
+    const pageSize = profile.paper === "A5" ? "A5" : { width: width * 1000, height: rollHeightMm * 1000 };
     const margins = { marginType: "custom", top: profile.marginTop * 1000, right: profile.marginRight * 1000, bottom: profile.marginBottom * 1000, left: profile.marginLeft * 1000 };
     await new Promise((resolve, reject) => win.webContents.print({ silent: true, printBackground: true, deviceName, landscape: profile.orientation === "landscape", copies: 1, scaleFactor: profile.scale, margins, pageSize }, (ok, failure) => ok ? resolve() : reject(new Error(failure || "Windows Spooler چاپ را نپذیرفت."))));
   } finally { win.destroy(); }
