@@ -1,1 +1,17 @@
 .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.settings-grid select{display:block;width:100%;margin-top:6px;padding:10px;border:1px solid #bfdbfe;border-radius:7px;font:inherit;direction:ltr}
+
+/* Keep the initial status area calm and close to the rest of the settings UI. */
+.hero{background:#fff;color:#173a64;border:1px solid #e5ebf3;box-shadow:0 12px 32px rgba(27,52,86,.055)}
+.hero p{color:#7a8799}.brand-mark{background:#e7f4f4;color:#0a7d70;box-shadow:none}
+.status-switch{border-color:#dfe9f0;background:#f8fbfc;color:#304662}.status-switch small{color:#7a8799}
+
+/* Mirocab primary colour */
+.brand-mark,.section-icon{background:#e5f6fc;color:#009ed9}
+.eyebrow{color:#009ed9}
+.toggle{background:#a8b5c3}.status-switch input:checked+.toggle{background:#009ed9}
+input:focus,select:focus{border-color:#009ed9;box-shadow:0 0 0 3px #009ed91f}
+button,.primary-action{background:#009ed9}.primary-action:hover,button:hover{background:#0085b7}
+.secondary{border-color:#a9e3f5;background:#fff;color:#008cc4}.secondary:hover{background:#eaf8fd}
+.site-badge,.fixed-badge{background:#e5f6fc;color:#008cc4}.printer:before{color:#009ed9}
+.rule-note{border-right-color:#009ed9;background:#effaff;color:#0877a0}
+.roll-settings{margin-top:16px;padding:15px;border:1px solid #bfeafb;border-radius:12px;background:#f5fcff}.roll-heading{display:flex;align-items:baseline;gap:10px;color:#18719a}.roll-heading span,.roll-hint{color:#637d8d;font-size:11px}.roll-hint{margin:10px 0 0;line-height:1.8}

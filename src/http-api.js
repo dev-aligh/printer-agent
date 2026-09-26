@@ -5,14 +5,14 @@ const { resolveProfile, DOCUMENT_PROFILES } = require("./profiles");
 const { withCut } = require("./escpos");
 const { printRaw, getJobs, controlJob } = require("./raw-spooler");
 
-const LOCAL_ORIGINS = new Set(["http://localhost", "http://127.0.0.1"]);
-function isLocalOrigin(origin) { try { const u = new URL(origin); return LOCAL_ORIGINS.has(u.origin) || u.hostname === "localhost" || u.hostname === "127.0.0.1"; } catch (_) { return false; } }
+const PANEL_ORIGIN = "https://company.mirocab.ir";
+function isAllowedOrigin(origin) { return origin === PANEL_ORIGIN; }
 function json(res, status, value) { res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(value)); }
 
 function createApi({ config, getPrinters, printHtml, resourcesPath }) {
   return http.createServer(async (req, res) => {
     const origin = req.headers.origin;
-    if (origin && !isLocalOrigin(origin) && !config.get().allowedOrigins.includes(origin)) return json(res, 403, { error: "origin_not_allowed" });
+    if (origin && !isAllowedOrigin(origin)) return json(res, 403, { error: "origin_not_allowed" });
     if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin"); res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Mirocab-Pairing-Token");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -30,8 +30,8 @@ function createApi({ config, getPrinters, printHtml, resourcesPath }) {
     let body = ""; for await (const chunk of req) { body += chunk; if (body.length > 8 * 1024 * 1024) return json(res, 413, { error: "payload_too_large" }); }
     try {
       if (!config.get().enabled) throw new Error("Agent غیرفعال است.");
-      const job = JSON.parse(body); const saved = config.get().profileSettings[job.profile] || {}; const profile = resolveProfile(job.profile, { ...saved, ...job.options });
-      const printer = (await getPrinters()).find((item) => item.name === (job.printer || saved.printer));
+      const job = JSON.parse(body); const profileId = job.documentType || job.profile; const saved = config.get().profileSettings[profileId] || {}; const profile = resolveProfile(profileId, saved);
+      const printer = (await getPrinters()).find((item) => item.name === (saved.printer || job.printer));
       if (!printer) throw new Error("پرینتر انتخاب‌شده یافت نشد.");
       if (job.rawEscPosBase64 && job.rawMode === true) {
         let bytes = Buffer.from(job.rawEscPosBase64, "base64");

@@ -5,7 +5,7 @@
   "description": "Mirocab local silent-print agent for Windows 7 SP1 and Windows 10",
   "main": "src/main.js",
   "scripts": {
-    "dev": "electron .",
+    "dev": "node scripts/dev.js",
     "start": "electron .",
     "test": "node --test test/*.test.js",
     "package:win": "electron-builder --win nsis portable",
@@ -15,10 +15,11 @@
   "build": {
     "appId": "ir.mirocab.printagent",
     "productName": "Mirocab Print Agent",
+    "electronDist": "node_modules/electron/dist",
     "asar": true,
     "files": ["src/**/*", "README.md", "LICENSE"],
-    "win": { "target": [{ "target": "nsis", "arch": ["x64", "ia32"] }, { "target": "portable", "arch": ["x64", "ia32"] }] },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "runAfterFinish": true },
+    "win": { "signAndEditExecutable": false, "target": [{ "target": "nsis", "arch": ["x64", "ia32"] }, { "target": "portable", "arch": ["x64", "ia32"] }] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "runAfterFinish": true, "installerIcon": "resources/app-icon.ico", "uninstallerIcon": "resources/app-icon.ico" },
     "extraResources": [{ "from": "resources", "to": "resources", "filter": ["**/*"] }]
   },
   "engines": { "node": ">=22 <23" },

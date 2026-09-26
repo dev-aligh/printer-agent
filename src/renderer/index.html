@@ -1,8 +1,94 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>تنظیمات چاپ میروکب</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="settings.css"></head><body>
-<main><header><div><h1>تنظیمات چاپ میروکب</h1><p>این Agent فقط روی <b>127.0.0.1</b> درخواست می‌پذیرد.</p></div><label class="switch">فعال بودن Agent <input id="enabled" type="checkbox"><span></span></label></header>
-<section><h2>اتصال پنل</h2><label>آدرس پنل مجاز <input id="origin" placeholder="https://panel.example.ir"></label><button id="saveOrigin">افزودن آدرس</button><p class="hint">توکن را فقط در بخش تنظیمات امن پنل وارد کنید؛ هر درخواست باید این توکن را ارسال کند.</p><label>Pairing token <input id="token" readonly><button id="copyToken">کپی</button></label></section>
-<section><h2>پرینترهای نصب‌شده</h2><div id="printerList" class="printers">در حال دریافت…</div></section>
-<section><h2>صف چاپ ویندوز</h2><label>پرینتر <select id="queuePrinter"></select></label><button id="refreshJobs">به‌روزرسانی صف</button><div id="jobList" class="printers">یک پرینتر انتخاب کنید.</div><p class="hint">توقف، ادامه و لغو مستقیماً روی Windows Print Spooler همان پرینتر اعمال می‌شود.</p></section>
-<section><h2>پیش‌فرض این سیستم برای هر سند</h2><div class="settings-grid"><label>پروفایل<select id="profile"><option value="statement_a5">صورت‌وضعیت A5</option><option value="cargo_a5">بارنامه A5</option><option value="passenger_ticket">بلیت مسافر</option><option value="cargo_thermal">بارنامه حرارتی</option><option value="driver_performance">گزارش عملکرد راننده</option></select></label><label>پرینتر<select id="profilePrinter"></select></label><label>کاغذ<select id="profilePaper"><option value="A5">A5</option><option value="thermal-58">حرارتی ۵۸</option><option value="thermal-80">حرارتی ۸۰</option></select></label><label>تعداد نسخه<input id="profileCopies" type="number" min="1" max="20" value="1"></label></div><button id="saveProfile">ذخیرهٔ تنظیم این سیستم</button><p id="profileRule" class="hint"></p></section>
-<section><h2>قواعد ثابت اسناد</h2><table><thead><tr><th>سند</th><th>کاغذ/جهت</th><th>قاعده</th></tr></thead><tbody><tr><td>صورت‌وضعیت</td><td>A5 / عمودی</td><td>همیشه ثابت</td></tr><tr><td>بارنامه A5</td><td>A5 / افقی</td><td>همیشه ثابت</td></tr><tr><td>بلیت مسافر</td><td>A5 یا ۵۸/۸۰ حرارتی</td><td>انتخاب هر سیستم</td></tr><tr><td>بارنامه حرارتی</td><td>۵۸/۸۰ حرارتی</td><td>۲ job و Cut پس از هر نسخه</td></tr><tr><td>گزارش راننده</td><td>A5 یا حرارتی</td><td>Cut در پایان برای ESC/POS</td></tr></tbody></table></section>
-</main><script src="renderer.js"></script></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تنظیمات چاپ میروکب</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="brand-mark" aria-hidden="true">م</div>
+      <div class="hero-copy">
+        <span class="eyebrow">MIROCAB PRINT AGENT</span>
+        <h1>مرکز تنظیمات چاپ</h1>
+        <p>اتصال امن پنل میروکب به پرینترهای این سیستم</p>
+      </div>
+      <label class="switch status-switch">
+        <input id="enabled" type="checkbox">
+        <span class="toggle"></span>
+        <span><b>وضعیت Agent</b><small>فعال و آمادهٔ دریافت چاپ</small></span>
+      </label>
+    </header>
+
+    <section class="connection-card">
+      <div class="section-heading">
+        <div class="section-icon">⌁</div>
+        <div><h2>اتصال امن پنل</h2><p>دسترسی فقط برای پنل رسمی میروکب</p></div>
+        <span class="site-badge">company.mirocab.ir</span>
+      </div>
+      <div class="token-box">
+        <div><b>Pairing token</b><span>این کد را یک‌بار در تنظیمات امن پنل وارد کنید.</span></div>
+        <input id="token" readonly aria-label="Pairing token">
+        <button id="copyToken" class="secondary">کپی توکن</button>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-heading">
+        <div class="section-icon">▣</div>
+        <div><h2>پرینترهای نصب‌شده</h2><p>پرینترهای در دسترس ویندوز در اینجا نمایش داده می‌شوند.</p></div>
+      </div>
+      <div id="printerList" class="printers">در حال دریافت فهرست پرینترها…</div>
+    </section>
+
+    <section>
+      <div class="section-heading inline-action">
+        <div class="section-icon">≡</div>
+        <div><h2>صف چاپ ویندوز</h2><p>مدیریت jobهای در حال چاپ پرینتر انتخاب‌شده</p></div>
+        <button id="refreshJobs" class="secondary">به‌روزرسانی</button>
+      </div>
+      <label class="field-label">پرینتر مورد بررسی<select id="queuePrinter"></select></label>
+      <div id="jobList" class="printers empty-state">یک پرینتر انتخاب کنید.</div>
+    </section>
+
+    <section>
+      <div class="section-heading">
+        <div class="section-icon">⚙</div>
+        <div><h2>تنظیمات چاپ اسناد</h2><p>برای هر نوع سند، پرینتر و کاغذ پیش‌فرض همین سیستم را تعیین کنید.</p></div>
+      </div>
+      <div class="settings-grid">
+        <label>نوع سند<select id="profile"><option value="statement_a5">صورت‌وضعیت</option><option value="cargo_a5">بارنامه A5</option><option value="passenger_ticket">بلیت مسافر</option><option value="cargo_thermal">بارنامه حرارتی</option><option value="driver_performance">گزارش عملکرد راننده</option></select></label>
+        <label>پرینتر<select id="profilePrinter"></select></label>
+        <label>کاغذ<select id="profilePaper"><option value="A5">A5</option><option value="thermal-58">رول حرارتی ۵۸</option><option value="thermal-80">رول حرارتی ۸۰</option><option value="custom-roll">رول سفارشی</option></select></label>
+        <label>جهت چاپ<select id="profileOrientation"><option value="portrait">عمودی</option><option value="landscape">افقی</option></select></label>
+        <label>تعداد نسخه<input id="profileCopies" type="number" min="1" max="20" value="1"></label>
+        <label>Scale (%)<input id="profileScale" type="number" min="25" max="200" value="100"></label>
+        <label>حاشیهٔ بالا (میلی‌متر)<input id="marginTop" type="number" min="0" max="30" value="0"></label>
+        <label>حاشیهٔ راست (میلی‌متر)<input id="marginRight" type="number" min="0" max="30" value="0"></label>
+        <label>حاشیهٔ پایین (میلی‌متر)<input id="marginBottom" type="number" min="0" max="30" value="0"></label>
+        <label>حاشیهٔ چپ (میلی‌متر)<input id="marginLeft" type="number" min="0" max="30" value="0"></label>
+      </div>
+      <div id="rollSettings" class="roll-settings" hidden>
+        <div class="roll-heading"><b>تنظیمات کاغذ رول</b><span>برای رول ۵۸ و ۸۰، عرض از استاندارد پرینتر گرفته می‌شود.</span></div>
+        <div class="settings-grid">
+          <label id="customRollWidthField">عرض رول سفارشی (میلی‌متر)<input id="rollWidthMm" type="number" min="30" max="220" value="80"></label>
+          <label>طول هر برش رول (میلی‌متر)<input id="rollHeightMm" type="number" min="20" max="1000" value="130"></label>
+          <label>عملیات Cut<select id="profileCutMode"><option value="none">بدون Cut</option><option value="at-end">یک Cut پس از پایان سند</option><option value="after-each-copy">Cut پس از هر نسخه</option></select></label>
+        </div>
+        <p class="roll-hint">Cut فقط وقتی قابل اجراست که پنل دادهٔ RAW/ESC-POS بفرستد و پرینتر آن را پشتیبانی کند. چاپ HTML از طریق درایور ویندوز انجام می‌شود.</p>
+      </div>
+      <p id="profileRule" class="rule-note"></p>
+      <button id="saveProfile" class="primary-action">ذخیرهٔ تنظیمات این سند</button>
+    </section>
+
+    <section class="rules-card">
+      <div class="section-heading"><div class="section-icon">✓</div><div><h2>قواعد ثابت اسناد</h2><p>این قواعد برای جلوگیری از چاپ اشتباه، توسط Agent اعمال می‌شوند.</p></div></div>
+      <table><thead><tr><th>سند</th><th>کاغذ و جهت</th><th>قاعده</th></tr></thead><tbody><tr><td>صورت‌وضعیت</td><td>A5 / عمودی</td><td><span class="fixed-badge">همیشه ثابت</span></td></tr><tr><td>بارنامه A5</td><td>A5 / افقی</td><td><span class="fixed-badge">همیشه ثابت</span></td></tr><tr><td>بلیت مسافر</td><td>A5 یا رول حرارتی</td><td>تنظیم هر سیستم</td></tr><tr><td>بارنامه حرارتی</td><td>رول ۵۸ یا ۸۰</td><td>دو job و Cut هر نسخه</td></tr><tr><td>گزارش راننده</td><td>A5 یا رول حرارتی</td><td>Cut در انتهای ESC/POS</td></tr></tbody></table>
+    </section>
+  </main>
+  <script src="renderer.js"></script>
+</body>
+</html>

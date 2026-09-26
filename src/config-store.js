@@ -6,7 +6,6 @@ const { randomBytes } = require("crypto");
 const defaults = () => ({
   enabled: true,
   pairingToken: randomBytes(32).toString("base64url"),
-  allowedOrigins: [],
   printers: {},
   profileSettings: {},
   port: 18443
@@ -17,6 +16,8 @@ function createConfigStore(userDataPath) {
   let data = defaults();
   try { data = { ...data, ...JSON.parse(fs.readFileSync(file, "utf8")) }; } catch (_) {}
   const save = () => fs.writeFileSync(file, JSON.stringify(data, null, 2), { mode: 0o600 });
-  return { get: () => structuredClone(data), update: (patch) => { data = { ...data, ...patch }; save(); return structuredClone(data); }, save };
+  // Electron 22 embeds Node 16, which does not provide structuredClone.
+  const snapshot = () => JSON.parse(JSON.stringify(data));
+  return { get: snapshot, update: (patch) => { data = { ...data, ...patch }; save(); return snapshot(); }, save };
 }
 module.exports = { createConfigStore };
