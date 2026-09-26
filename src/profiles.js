@@ -24,7 +24,6 @@ function resolveProfile(profileId, requested = {}) {
   const profile = DOCUMENT_PROFILES[profileId];
   if (!profile) throw new Error("پروفایل سند معتبر نیست.");
   const paper = profile.fixedPaper ? profile.paper : (profile.allowedPapers?.includes(requested.paper) ? requested.paper : profile.paper);
-  const isRoll = paper !== "A5";
   const cutMode = resolveCutMode(profile, requested);
   return {
     ...profile,
@@ -33,9 +32,7 @@ function resolveProfile(profileId, requested = {}) {
     orientation: profile.fixedOrientation ? profile.orientation : (requested.orientation === "landscape" ? "landscape" : "portrait"),
     copies: numberInRange(requested.copies, 1, 1, 20),
     scale: numberInRange(requested.scale, 100, 25, 200),
-    // Thermal printers feed exactly from the print origin. A saved top margin
-    // creates a blank strip before every roll document, so it is never applied.
-    marginTop: isRoll ? 0 : numberInRange(requested.marginTop, 0, 0, 30),
+    marginTop: numberInRange(requested.marginTop, 0, 0, 30),
     marginRight: numberInRange(requested.marginRight, 0, 0, 30),
     marginBottom: numberInRange(requested.marginBottom, 0, 0, 30),
     marginLeft: numberInRange(requested.marginLeft, 0, 0, 30),

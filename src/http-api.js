@@ -16,6 +16,11 @@ function createApi({ config, getPrinters, printHtml, resourcesPath }) {
     if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin"); res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Mirocab-Pairing-Token");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    // Chrome may preflight a public HTTPS page's connection to loopback as a
+    // Private Network Access request. Only the already trusted panel origin
+    // reaches this point, so explicitly grant that preflight.
+    if (req.headers["access-control-request-private-network"] === "true")
+      res.setHeader("Access-Control-Allow-Private-Network", "true");
     if (req.method === "OPTIONS") return res.end();
     if (req.socket.remoteAddress !== "127.0.0.1" && req.socket.remoteAddress !== "::1" && req.socket.remoteAddress !== "::ffff:127.0.0.1") return json(res, 403, { error: "localhost_only" });
     if (req.headers["x-mirocab-pairing-token"] !== config.get().pairingToken) return json(res, 401, { error: "pairing_required" });
