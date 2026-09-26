@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require
 const { createConfigStore } = require("./config-store");
 const { createApi } = require("./http-api");
 const { getJobs, controlJob } = require("./raw-spooler");
+const { resolveProfile } = require("./profiles");
 
 let settingsWindow; let tray; let api; let store;
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -82,6 +83,14 @@ ipcMain.handle("config:save", (_, patch) => store.update(patch));
 ipcMain.handle("printers:list", getPrinters);
 ipcMain.handle("printer:jobs", (_, printer) => getJobs(printer, resourcesPath));
 ipcMain.handle("printer:job-control", (_, printer, jobId, action) => controlJob(printer, jobId, action, resourcesPath));
-ipcMain.handle("agent:test-print", async (_, printer) => printHtml("<html dir='rtl'><body style='font-family:Tahoma;text-align:center;padding:20mm'><h2>تست چاپ میروکب</h2><p>اتصال Agent و Windows Spooler برقرار است.</p></body></html>", printer, { orientation: "portrait", paper: "A5" }));
+ipcMain.handle("agent:test-print", async (_, profileId) => {
+  const saved = store.get().profileSettings[profileId] || {};
+  if (typeof saved.printer !== "string" || saved.printer.length === 0)
+    throw new Error("ابتدا پرینتر همین نوع سند را ذخیره کنید.");
+  const printer = (await getPrinters()).find((item) => item.name === saved.printer);
+  if (!printer) throw new Error("پرینتر ذخیره‌شده برای این نوع سند یافت نشد.");
+  const profile = resolveProfile(profileId, saved);
+  return printHtml("<html dir='rtl'><body style='font-family:Tahoma;text-align:center;padding:20mm'><h2>تست چاپ میروکب</h2><p>این job فقط با پروفایل ذخیره‌شدهٔ همین نوع سند ارسال شده است.</p></body></html>", printer.name, profile);
+});
 app.on("window-all-closed", (event) => event.preventDefault());
 app.on("before-quit", () => { if (api) api.close(); });

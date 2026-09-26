@@ -39,7 +39,7 @@
     <section>
       <div class="section-heading">
         <div class="section-icon">▣</div>
-        <div><h2>پرینترهای نصب‌شده</h2><p>پرینترهای در دسترس ویندوز در اینجا نمایش داده می‌شوند.</p></div>
+        <div><h2>پرینترهای نصب‌شده</h2><p>پرینترهای در دسترس ویندوز در اینجا نمایش داده می‌شوند؛ انتخاب آن‌ها فقط پس از ذخیره در پروفایل میروکب استفاده می‌شود.</p></div>
       </div>
       <div id="printerList" class="printers">در حال دریافت فهرست پرینترها…</div>
     </section>
@@ -57,7 +57,7 @@
     <section>
       <div class="section-heading">
         <div class="section-icon">⚙</div>
-        <div><h2>تنظیمات چاپ اسناد</h2><p>برای هر نوع سند، پرینتر و کاغذ پیش‌فرض همین سیستم را تعیین کنید.</p></div>
+        <div><h2>تنظیمات چاپ اسناد</h2><p>این مقادیر فقط داخل Agent ذخیره می‌شوند و پنل اجازهٔ تغییرشان را ندارد.</p></div>
       </div>
       <div class="settings-grid">
         <label>نوع سند<select id="profile"><option value="statement_a5">صورت‌وضعیت</option><option value="cargo_a5">بارنامه A5</option><option value="passenger_ticket">بلیت مسافر</option><option value="cargo_thermal">بارنامه حرارتی</option><option value="driver_performance">گزارش عملکرد راننده</option></select></label>
@@ -82,6 +82,7 @@
       </div>
       <p id="profileRule" class="rule-note"></p>
       <button id="saveProfile" class="primary-action">ذخیرهٔ تنظیمات این سند</button>
+      <button id="testProfile" class="secondary">تست با همین پروفایل ذخیره‌شده</button>
     </section>
 
     <section class="rules-card">

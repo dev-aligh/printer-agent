@@ -35,8 +35,14 @@ function createApi({ config, getPrinters, printHtml, resourcesPath }) {
     let body = ""; for await (const chunk of req) { body += chunk; if (body.length > 8 * 1024 * 1024) return json(res, 413, { error: "payload_too_large" }); }
     try {
       if (!config.get().enabled) throw new Error("Agent غیرفعال است.");
-      const job = JSON.parse(body); const profileId = job.documentType || job.profile; const saved = config.get().profileSettings[profileId] || {}; const profile = resolveProfile(profileId, saved);
-      const printer = (await getPrinters()).find((item) => item.name === (saved.printer || job.printer));
+      const job = JSON.parse(body); const profileId = job.documentType || job.profile; const saved = config.get().profileSettings[profileId] || {};
+      // The panel supplies document content only.  Printer selection and every
+      // print preference belong to this machine's saved Mirocab profile.
+      // In particular, do not let a request choose an arbitrary local printer.
+      if (typeof saved.printer !== "string" || saved.printer.length === 0)
+        throw new Error("برای این نوع سند، پرینتر میروکب در Agent تنظیم نشده است.");
+      const profile = resolveProfile(profileId, saved);
+      const printer = (await getPrinters()).find((item) => item.name === saved.printer);
       if (!printer) throw new Error("پرینتر انتخاب‌شده یافت نشد.");
       if (job.rawEscPosBase64 && job.rawMode === true) {
         let bytes = Buffer.from(job.rawEscPosBase64, "base64");
