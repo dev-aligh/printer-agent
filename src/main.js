@@ -57,7 +57,28 @@ async function printHtml(html, deviceName, profile) {
     const rollHeightMm = profile.paper === "A5" ? null : await renderedRollHeightMm(win, profile);
     const pageSize = profile.paper === "A5" ? "A5" : { width: width * 1000, height: rollHeightMm * 1000 };
     const margins = { marginType: "custom", top: profile.marginTop * 1000, right: profile.marginRight * 1000, bottom: profile.marginBottom * 1000, left: profile.marginLeft * 1000 };
-    await new Promise((resolve, reject) => win.webContents.print({ silent: true, printBackground: true, deviceName, landscape: profile.orientation === "landscape", copies: 1, scaleFactor: profile.scale, margins, pageSize }, (ok, failure) => ok ? resolve() : reject(new Error(failure || "Windows Spooler چاپ را نپذیرفت."))));
+    // Some Windows drivers never call Chromium's print callback when their
+    // spooler connection has failed.  Do not leave the settings UI (or API
+    // job) waiting forever in that case.
+    await new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        error ? reject(error) : resolve();
+      };
+      const timeout = setTimeout(() => finish(new Error("چاپگر تا ۳۰ ثانیه پاسخی نداد. اتصال، روشن‌بودن چاپگر و Windows Print Spooler را بررسی کنید.")), 30_000);
+      try {
+        win.webContents.print({
+          silent: true, printBackground: true, deviceName,
+          landscape: profile.orientation === "landscape", copies: 1,
+          scaleFactor: profile.scale, margins, pageSize
+        }, (ok, failure) => finish(ok ? null : new Error(failure || "Windows Spooler چاپ را نپذیرفت.")));
+      } catch (error) {
+        finish(error);
+      }
+    });
   } finally { win.destroy(); }
 }
 app.whenReady().then(async () => {
@@ -90,7 +111,7 @@ ipcMain.handle("agent:test-print", async (_, profileId) => {
   const printer = (await getPrinters()).find((item) => item.name === saved.printer);
   if (!printer) throw new Error("پرینتر ذخیره‌شده برای این نوع سند یافت نشد.");
   const profile = resolveProfile(profileId, saved);
-  return printHtml("<html dir='rtl'><head><style>@page{margin:0}html,body{margin:0;padding:0}body{font-family:Tahoma,sans-serif;text-align:center}h2{margin:0}p{margin:8px 0 0}</style></head><body><h2>تست چاپ میروکب</h2><p>این job فقط با پروفایل ذخیره‌شدهٔ همین نوع سند ارسال شده است.</p></body></html>", printer.name, profile);
+  return printHtml("<html dir='rtl'><head><style>@page{margin:0}html,body{margin:0;padding:0}body{font-family:Tahoma,sans-serif;text-align:center;padding:12mm}h2{margin:0}p{margin:8px 0 0}</style></head><body><h2>تست چاپ میروکب</h2><p>این job فقط با پروفایل ذخیره‌شدهٔ همین نوع سند ارسال شده است.</p></body></html>", printer.name, profile);
 });
 app.on("window-all-closed", (event) => event.preventDefault());
 app.on("before-quit", () => { if (api) api.close(); });
