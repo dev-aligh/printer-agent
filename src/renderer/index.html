@@ -38,30 +38,12 @@
 
     <section>
       <div class="section-heading">
-        <div class="section-icon">▣</div>
-        <div><h2>پرینترهای نصب‌شده</h2><p>پرینترهای در دسترس ویندوز در اینجا نمایش داده می‌شوند؛ انتخاب آن‌ها فقط پس از ذخیره در پروفایل میروکب استفاده می‌شود.</p></div>
-      </div>
-      <div id="printerList" class="printers">در حال دریافت فهرست پرینترها…</div>
-    </section>
-
-    <section>
-      <div class="section-heading inline-action">
-        <div class="section-icon">≡</div>
-        <div><h2>صف چاپ ویندوز</h2><p>مدیریت jobهای در حال چاپ پرینتر انتخاب‌شده</p></div>
-        <button id="refreshJobs" class="secondary">به‌روزرسانی</button>
-      </div>
-      <label class="field-label">پرینتر مورد بررسی<select id="queuePrinter"></select></label>
-      <div id="jobList" class="printers empty-state">یک پرینتر انتخاب کنید.</div>
-    </section>
-
-    <section>
-      <div class="section-heading">
         <div class="section-icon">⚙</div>
-        <div><h2>تنظیمات چاپ اسناد</h2><p>این مقادیر فقط داخل Agent ذخیره می‌شوند و پنل اجازهٔ تغییرشان را ندارد.</p></div>
+        <div><h2>تنظیمات چاپ اسناد</h2><p>پرینتر و تنظیمات هر نوع سند فقط داخل Agent ذخیره می‌شوند و پنل اجازهٔ تغییرشان را ندارد.</p></div>
       </div>
       <div class="settings-grid">
         <label>نوع سند<select id="profile"><option value="statement_a5">صورت‌وضعیت</option><option value="cargo_a5">بارنامه A5</option><option value="passenger_ticket">بلیت مسافر</option><option value="cargo_thermal">بارنامه حرارتی</option><option value="driver_performance">گزارش عملکرد راننده</option></select></label>
-        <label>پرینتر<select id="profilePrinter"></select></label>
+        <div class="printer-field"><span>پرینتر این سند</span><button id="choosePrinter" class="printer-picker" type="button"><span id="selectedPrinter">انتخاب پرینتر</span><span aria-hidden="true">‹</span></button><small>این انتخاب فقط برای نوع سند فعلی ذخیره می‌شود.</small></div>
         <label>کاغذ<select id="profilePaper"><option value="A5">A5</option><option value="thermal-58">رول حرارتی ۵۸</option><option value="thermal-80">رول حرارتی ۸۰</option><option value="custom-roll">رول سفارشی</option></select></label>
         <label>جهت چاپ<select id="profileOrientation"><option value="portrait">عمودی</option><option value="landscape">افقی</option></select></label>
         <label>تعداد نسخه<input id="profileCopies" type="number" min="1" max="20" value="1"></label>
@@ -90,6 +72,14 @@
       <table><thead><tr><th>سند</th><th>کاغذ و جهت</th><th>قاعده</th></tr></thead><tbody><tr><td>صورت‌وضعیت</td><td>A5 / عمودی</td><td><span class="fixed-badge">همیشه ثابت</span></td></tr><tr><td>بارنامه A5</td><td>A5 / افقی</td><td><span class="fixed-badge">همیشه ثابت</span></td></tr><tr><td>بلیت مسافر</td><td>A5 یا رول حرارتی</td><td>تنظیم هر سیستم</td></tr><tr><td>بارنامه حرارتی</td><td>رول ۵۸ یا ۸۰</td><td>دو job و Cut هر نسخه</td></tr><tr><td>گزارش راننده</td><td>A5 یا رول حرارتی</td><td>Cut در انتهای ESC/POS</td></tr></tbody></table>
     </section>
   </main>
+  <div id="printerModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="printerModalTitle">
+    <div class="modal-backdrop" data-close-printer-modal></div>
+    <div class="modal-card">
+      <div class="modal-heading"><div><h2 id="printerModalTitle">انتخاب پرینتر</h2><p id="printerModalDescription">پرینتر مورد استفاده برای این سند را انتخاب کنید.</p></div><button id="closePrinterModal" class="icon-button" type="button" aria-label="بستن">×</button></div>
+      <div id="modalPrinterList" class="modal-printer-list"></div>
+      <p id="noPrinters" class="empty-state" hidden>هیچ پرینتر نصب‌شده‌ای پیدا نشد.</p>
+    </div>
+  </div>
   <script src="renderer.js"></script>
 </body>
 </html>

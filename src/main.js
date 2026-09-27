@@ -90,7 +90,7 @@ ipcMain.handle("agent:test-print", async (_, profileId) => {
   const printer = (await getPrinters()).find((item) => item.name === saved.printer);
   if (!printer) throw new Error("پرینتر ذخیره‌شده برای این نوع سند یافت نشد.");
   const profile = resolveProfile(profileId, saved);
-  return printHtml("<html dir='rtl'><body style='font-family:Tahoma;text-align:center;padding:20mm'><h2>تست چاپ میروکب</h2><p>این job فقط با پروفایل ذخیره‌شدهٔ همین نوع سند ارسال شده است.</p></body></html>", printer.name, profile);
+  return printHtml("<html dir='rtl'><head><style>@page{margin:0}html,body{margin:0;padding:0}body{font-family:Tahoma,sans-serif;text-align:center}h2{margin:0}p{margin:8px 0 0}</style></head><body><h2>تست چاپ میروکب</h2><p>این job فقط با پروفایل ذخیره‌شدهٔ همین نوع سند ارسال شده است.</p></body></html>", printer.name, profile);
 });
 app.on("window-all-closed", (event) => event.preventDefault());
 app.on("before-quit", () => { if (api) api.close(); });
