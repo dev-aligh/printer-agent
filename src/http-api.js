@@ -6,8 +6,11 @@ const { resolveProfile, DOCUMENT_PROFILES } = require("./profiles");
 const { withCut } = require("./escpos");
 const { printRaw, getJobs, controlJob } = require("./raw-spooler");
 
-const PANEL_ORIGIN = "https://company.mirocab.ir";
-function isAllowedOrigin(origin) { return origin === PANEL_ORIGIN; }
+const PANEL_ORIGINS = new Set([
+  "https://company.mirocab.ir",
+  "https://company.aro.stg.agidp.ir"
+]);
+function isAllowedOrigin(origin) { return PANEL_ORIGINS.has(origin); }
 function json(res, status, value) { res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(value)); }
 
 function createApi({ config, getPrinters, printHtml, resourcesPath }) {
