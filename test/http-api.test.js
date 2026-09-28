@@ -19,16 +19,14 @@ function request(server, path, method, body, headers = {}) {
   });
 }
 
-test("thermal cargo waits for its first print to leave the spooler before sending the second", async () => {
+test("thermal cargo sends the panel HTML once to its locally configured printer", async () => {
   const config = { get: () => ({ enabled: true, pairingToken: "test-token", profileSettings: { cargo_thermal: { printer: "Miro Thermal" } } }) };
   const printed = [];
-  const idleWaits = [];
   const server = createApi({
     config,
     getPrinters: async () => [{ name: "Miro Thermal" }],
     printHtml: async (html, printer, profile) => { printed.push({ html, printer, profile }); },
-    resourcesPath: "",
-    waitForIdle: async (printer) => { idleWaits.push(printer); }
+    resourcesPath: ""
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
@@ -41,9 +39,8 @@ test("thermal cargo waits for its first print to leave the spooler before sendin
     const completed = await request(server, `/v1/print-jobs/${accepted.body.job.id}`, "GET");
     assert.equal(completed.status, 200);
     assert.equal(completed.body.status, "completed");
-    assert.deepEqual(printed.map((item) => item.html), ["<p>cargo sample</p>", "<p>cargo sample</p>"]);
+    assert.deepEqual(printed.map((item) => item.html), ["<p>cargo sample</p>"]);
     assert.equal(printed[0].printer, "Miro Thermal");
-    assert.deepEqual(idleWaits, ["Miro Thermal"]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
