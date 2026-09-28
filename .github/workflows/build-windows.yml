@@ -1,4 +1,4 @@
-name: Build Windows installers
+name: Build 32-bit portable Windows app
 
 on:
   workflow_dispatch:
@@ -32,10 +32,10 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Package 32-bit and 64-bit Windows builds
+      - name: Package 32-bit portable Windows app
         run: npm run package:win
 
-      - name: Upload Windows installers and portable apps
+      - name: Upload 32-bit portable Windows app
         uses: actions/upload-artifact@v4
         with:
           name: Mirocab-Print-Agent-Windows-${{ github.sha }}
