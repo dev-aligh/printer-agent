@@ -5,7 +5,7 @@ const DOCUMENT_PROFILES = Object.freeze({
   statement_a5: { title: "صورت‌وضعیت", paper: "A5", orientation: "portrait", fixedPaper: true, fixedOrientation: true, transport: "spooler" },
   cargo_a5: { title: "بارنامه A5", paper: "A5", orientation: "landscape", fixedPaper: true, fixedOrientation: true, transport: "spooler" },
   passenger_ticket: { title: "بلیت مسافر", paper: "thermal-80", orientation: "portrait", allowedPapers: FLEXIBLE_PAPERS, transport: "auto" },
-  cargo_thermal: { title: "بارنامه", paper: "thermal-80", orientation: "portrait", allowedPapers: FLEXIBLE_PAPERS, jobsPerCopy: 2, cutAfterEachCopy: true, transport: "raw-or-spooler" },
+  cargo_thermal: { title: "بارنامه", paper: "thermal-80", orientation: "portrait", allowedPapers: FLEXIBLE_PAPERS, transport: "spooler" },
   driver_performance: { title: "گزارش عملکرد راننده", paper: "thermal-80", orientation: "portrait", allowedPapers: FLEXIBLE_PAPERS, cutAtEnd: true, transport: "raw-or-spooler" }
 });
 

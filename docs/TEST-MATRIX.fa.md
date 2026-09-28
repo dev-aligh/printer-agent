@@ -4,7 +4,7 @@
 | --- | --- | --- | --- |
 | Windows 7 SP1 x64 | نصب NSIS، اجرا، فهرست پرینتر | برنامه و API localhost بالا می‌آید | اجرا نشده — نیازمند دستگاه واقعی |
 | Windows 10 x64 | HP/Canon Windows Spooler | چاپ A5 silent، بدون browser dialog | اجرا نشده — نیازمند دستگاه واقعی |
-| Windows 10 + Epson TM | `cargo_thermal` raw | دو job و Cut بعد از هر نسخه | اجرا نشده — نیازمند Epson واقعی |
+| Windows 10 + Epson TM | `cargo_thermal` HTML | یک job با تنظیمات ذخیره‌شدهٔ بارنامه | اجرا نشده — نیازمند Epson واقعی |
 | هر دو | صورت‌وضعیت با option خلاف | فقط A5 Portrait | تست واحد پاس شده |
 | هر دو | Origin/توکن اشتباه | 403 / 401 | نیازمند اجرای Electron روی Windows |
 
