@@ -12,8 +12,17 @@ const PANEL_ORIGINS = new Set([
 ]);
 function isAllowedOrigin(origin) { return PANEL_ORIGINS.has(origin); }
 function json(res, status, value) { res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(value)); }
+function delay(milliseconds) { return new Promise((resolve) => setTimeout(resolve, milliseconds)); }
+async function waitForPrinterIdle(printer, resourcesPath) {
+  const deadline = Date.now() + 120_000;
+  do {
+    if ((await getJobs(printer, resourcesPath)).length === 0) return;
+    await delay(500);
+  } while (Date.now() < deadline);
+  throw new Error("چاپ اول بارنامه تا دو دقیقه در صف ویندوز باقی ماند؛ job دوم ارسال نشد.");
+}
 
-function createApi({ config, getPrinters, printHtml, resourcesPath }) {
+function createApi({ config, getPrinters, printHtml, resourcesPath, waitForIdle = waitForPrinterIdle }) {
   const printJobs = new Map();
   const jobView = (job) => ({
     id: job.id,
@@ -85,7 +94,15 @@ function createApi({ config, getPrinters, printHtml, resourcesPath }) {
           } else {
             if (typeof job.html !== "string" || job.html.length === 0) throw new Error("HTML چاپ ارسال نشده است.");
             const jobs = profile.jobsPerCopy || 1;
-            for (let copy = 0; copy < profile.copies; copy++) for (let i = 0; i < jobs; i++) await printHtml(job.html, printer.name, profile);
+            for (let copy = 0; copy < profile.copies; copy++) {
+              for (let i = 0; i < jobs; i++) {
+                await printHtml(job.html, printer.name, profile);
+                if (i < jobs - 1) {
+                  printJob.message = "در انتظار پایان چاپ اول بارنامه";
+                  await waitForIdle(printer.name, resourcesPath);
+                }
+              }
+            }
           }
           printJob.status = "completed";
           printJob.completedAt = new Date().toISOString();
