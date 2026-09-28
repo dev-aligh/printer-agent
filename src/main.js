@@ -25,36 +25,15 @@ async function getPrinters() {
   try { return await window.webContents.getPrintersAsync(); } finally { if (window !== settingsWindow) window.destroy(); }
 }
 
-async function renderedRollHeightMm(win, profile) {
-  // The panel owns the document design. Measure its rendered flow height after
-  // fonts settle so a long thermal report becomes one correctly sized roll job
-  // instead of being clipped at the profile's old fixed height.
-  const heightPx = await win.webContents.executeJavaScript(`
-    (async () => {
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      const root = document.querySelector('[data-miro-print-root]') || document.body;
-      const rect = root.getBoundingClientRect();
-      return Math.ceil(Math.max(
-        document.documentElement.scrollHeight,
-        document.body.scrollHeight,
-        rect.bottom + window.scrollY,
-      ));
-    })()
-  `);
-  const contentMm = Math.ceil((Number(heightPx) * 25.4) / 96);
-  // 5 metres prevents a malformed document from making an unbounded spool job.
-  return Math.min(
-    5000,
-    Math.max(profile.rollHeightMm, 20, contentMm + profile.marginTop + profile.marginBottom),
-  );
-}
-
 async function printHtml(html, deviceName, profile) {
   const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
   try {
     await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
     const width = profile.paper === "thermal-58" ? 58 : profile.paper === "thermal-80" ? 80 : profile.rollWidthMm;
-    const rollHeightMm = profile.paper === "A5" ? null : await renderedRollHeightMm(win, profile);
+    // Thermal drivers commonly accept their configured roll height but can
+    // hang without invoking Electron's callback for a document-sized custom
+    // height. Keep the page size stable and let the driver handle the roll.
+    const rollHeightMm = profile.paper === "A5" ? null : profile.rollHeightMm;
     const pageSize = profile.paper === "A5" ? "A5" : { width: width * 1000, height: rollHeightMm * 1000 };
     const margins = { marginType: "custom", top: profile.marginTop * 1000, right: profile.marginRight * 1000, bottom: profile.marginBottom * 1000, left: profile.marginLeft * 1000 };
     // Some Windows drivers never call Chromium's print callback when their
