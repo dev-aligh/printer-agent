@@ -29,6 +29,18 @@ async function printHtml(html, deviceName, profile) {
   const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
   try {
     await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
+    if (profile.paper !== "A5") {
+      // The panel owns the document layout, but a browser's default body
+      // margin or a template's top spacing becomes wasted thermal paper.
+      // Normalize only the print origin before handing the page to Windows.
+      await win.webContents.executeJavaScript(`
+        (() => {
+          const style = document.createElement("style");
+          style.textContent = "@page{margin:0!important}html,body{margin-top:0!important;padding-top:0!important}[data-miro-print-root],body>:first-child{margin-top:0!important;padding-top:0!important}";
+          document.head.appendChild(style);
+        })()
+      `);
+    }
     const width = profile.paper === "thermal-58" ? 58 : profile.paper === "thermal-80" ? 80 : profile.rollWidthMm;
     // Thermal drivers commonly accept their configured roll height but can
     // hang without invoking Electron's callback for a document-sized custom
