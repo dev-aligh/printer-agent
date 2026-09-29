@@ -18,6 +18,7 @@ async function renderedThermalContentHeightMm(win, profile, timeoutMs) {
       (() => {
         const root = document.querySelector("[data-miro-print-root]") ||
           document.querySelector(".receipt") ||
+          document.querySelector(".ticket-page") ||
           document.querySelector(".report") || document.body;
         const rect = root.getBoundingClientRect();
         return Math.ceil(Math.max(root.scrollHeight, rect.height, rect.bottom));
@@ -51,7 +52,7 @@ return async function printHtml(html, deviceName, profile) {
       `), timeoutMs, "آماده‌سازی چاپ ناموفق بود.");
     }
     const contentSizedThermalDocument =
-      ["cargo_thermal", "driver_performance"].includes(profile.id) &&
+      ["passenger_ticket", "cargo_thermal", "driver_performance"].includes(profile.id) &&
       device.widthMm < 110;
     const pageHeightMm = contentSizedThermalDocument
       ? await renderedThermalContentHeightMm(win, profile, timeoutMs)

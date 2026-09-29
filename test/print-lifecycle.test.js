@@ -34,7 +34,7 @@ test("printing uses pixel margins, micron paper and selected Windows orientation
   assert.match(decodeURIComponent(f.loadedUrl()), /mirocab-landscape-statement-layout/);
   assert.equal(f.destroyed(), true);
 });
-test("thermal cargo and driver reports use rendered content length instead of the configured roll length", async () => {
+test("thermal tickets, cargo, and driver reports use rendered content length instead of the configured roll length", async () => {
   let options;
   class Window {
     webContents = {
@@ -50,7 +50,7 @@ test("thermal cargo and driver reports use rendered content length instead of th
     printerPreferences: async () => ({ widthMm: 80, heightMm: 130, orientation: "portrait" }),
     timeoutMs: 20,
   });
-  for (const documentType of ["cargo_thermal", "driver_performance"]) {
+  for (const documentType of ["passenger_ticket", "cargo_thermal", "driver_performance"]) {
     const profile = resolveProfile(documentType, { rollHeightMm: 130 });
     await print("<main class=\"report\">content</main>", "selected", profile);
     assert.equal(options.pageSize.height, contentHeightMm(240, profile) * 1000);
