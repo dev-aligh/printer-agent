@@ -1,6 +1,33 @@
 "use strict";
 const { withDeadline } = require("./deadline");
 const { prepareHtmlForPrint } = require("./statement-layout");
+
+function contentHeightMm(heightPx, profile) {
+  const contentMm = Math.ceil((Number(heightPx) * 25.4) / 96);
+  // Keep a tiny, intentional tail after the receipt while avoiding the
+  // configured fixed-length blank section.
+  return Math.min(
+    1000,
+    Math.max(20, contentMm + profile.marginTop + profile.marginBottom + 2),
+  );
+}
+
+async function renderedThermalCargoHeightMm(win, profile, timeoutMs) {
+  const heightPx = await withDeadline(
+    () => win.webContents.executeJavaScript(`
+      (() => {
+        const root = document.querySelector("[data-miro-print-root]") ||
+          document.querySelector(".receipt") || document.body;
+        const rect = root.getBoundingClientRect();
+        return Math.ceil(Math.max(root.scrollHeight, rect.height, rect.bottom));
+      })()
+    `),
+    timeoutMs,
+    "اندازه‌گیری طول رسید حرارتی ناموفق بود.",
+  );
+  return contentHeightMm(heightPx, profile);
+}
+
 function createHtmlPrinter({ BrowserWindow, printerPreferences, resourcesPath, timeoutMs = 30000 }) {
 return async function printHtml(html, deviceName, profile) {
   // Read the selected queue's current Windows preferences, never reapply a document profile.
@@ -22,7 +49,11 @@ return async function printHtml(html, deviceName, profile) {
         })()
       `), timeoutMs, "آماده‌سازی چاپ ناموفق بود.");
     }
-    const pageSize = { width: Math.round(device.widthMm * 1000), height: Math.round(device.heightMm * 1000) };
+    const thermalCargo = profile.id === "cargo_thermal" && device.widthMm < 110;
+    const pageHeightMm = thermalCargo
+      ? await renderedThermalCargoHeightMm(win, profile, timeoutMs)
+      : device.heightMm;
+    const pageSize = { width: Math.round(device.widthMm * 1000), height: Math.round(pageHeightMm * 1000) };
     const margins = { marginType: "custom", top: profile.marginTop * 96 / 25.4, right: profile.marginRight * 96 / 25.4, bottom: profile.marginBottom * 96 / 25.4, left: profile.marginLeft * 96 / 25.4 };
     // Some Windows drivers never call Chromium's print callback when their
     // spooler connection has failed.  Do not leave the settings UI (or API
@@ -49,4 +80,4 @@ return async function printHtml(html, deviceName, profile) {
   } finally { if (!win.isDestroyed()) win.destroy(); }
 }
 }
-module.exports = { createHtmlPrinter };
+module.exports = { contentHeightMm, createHtmlPrinter };

@@ -3,7 +3,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { EventEmitter } = require("node:events");
 const { rawHelper } = require("../src/raw-spooler");
-const { createHtmlPrinter } = require("../src/html-printer");
+const { contentHeightMm, createHtmlPrinter } = require("../src/html-printer");
 const { resolveProfile } = require("../src/profiles");
 
 function fixture(stage) {
@@ -33,6 +33,27 @@ test("printing uses pixel margins, micron paper and selected Windows orientation
   assert.deepEqual(f.options().pageSize, { width: 148000, height: 210000 });
   assert.match(decodeURIComponent(f.loadedUrl()), /mirocab-landscape-statement-layout/);
   assert.equal(f.destroyed(), true);
+});
+test("thermal cargo uses rendered receipt length instead of the configured roll length", async () => {
+  let options;
+  class Window {
+    webContents = {
+      executeJavaScript: (script) => Promise.resolve(script.includes("scrollHeight") ? 240 : true),
+      print: (value, callback) => { options = value; callback(true); }
+    };
+    loadURL() { return Promise.resolve(); }
+    isDestroyed() { return false; }
+    destroy() {}
+  }
+  const print = createHtmlPrinter({
+    BrowserWindow: Window,
+    printerPreferences: async () => ({ widthMm: 80, heightMm: 130, orientation: "portrait" }),
+    timeoutMs: 20,
+  });
+  const profile = resolveProfile("cargo_thermal", { rollHeightMm: 130 });
+  await print("<main data-miro-print-root>cargo</main>", "selected", profile);
+  assert.equal(options.pageSize.height, contentHeightMm(240, profile) * 1000);
+  assert.ok(options.pageSize.height < 130000);
 });
 for (const stage of ["load", "prepare", "callback", "throw", "reject"]) test(`print ${stage} failure releases its window and rejects`, async () => {
   const f = fixture(stage); await assert.rejects(f.print()); assert.equal(f.destroyed(), true);
