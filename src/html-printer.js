@@ -12,12 +12,13 @@ function contentHeightMm(heightPx, profile) {
   );
 }
 
-async function renderedThermalCargoHeightMm(win, profile, timeoutMs) {
+async function renderedThermalContentHeightMm(win, profile, timeoutMs) {
   const heightPx = await withDeadline(
     () => win.webContents.executeJavaScript(`
       (() => {
         const root = document.querySelector("[data-miro-print-root]") ||
-          document.querySelector(".receipt") || document.body;
+          document.querySelector(".receipt") ||
+          document.querySelector(".report") || document.body;
         const rect = root.getBoundingClientRect();
         return Math.ceil(Math.max(root.scrollHeight, rect.height, rect.bottom));
       })()
@@ -49,9 +50,11 @@ return async function printHtml(html, deviceName, profile) {
         })()
       `), timeoutMs, "آماده‌سازی چاپ ناموفق بود.");
     }
-    const thermalCargo = profile.id === "cargo_thermal" && device.widthMm < 110;
-    const pageHeightMm = thermalCargo
-      ? await renderedThermalCargoHeightMm(win, profile, timeoutMs)
+    const contentSizedThermalDocument =
+      ["cargo_thermal", "driver_performance"].includes(profile.id) &&
+      device.widthMm < 110;
+    const pageHeightMm = contentSizedThermalDocument
+      ? await renderedThermalContentHeightMm(win, profile, timeoutMs)
       : device.heightMm;
     const pageSize = { width: Math.round(device.widthMm * 1000), height: Math.round(pageHeightMm * 1000) };
     const margins = { marginType: "custom", top: profile.marginTop * 96 / 25.4, right: profile.marginRight * 96 / 25.4, bottom: profile.marginBottom * 96 / 25.4, left: profile.marginLeft * 96 / 25.4 };

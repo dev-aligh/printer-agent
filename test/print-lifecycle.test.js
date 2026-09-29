@@ -34,7 +34,7 @@ test("printing uses pixel margins, micron paper and selected Windows orientation
   assert.match(decodeURIComponent(f.loadedUrl()), /mirocab-landscape-statement-layout/);
   assert.equal(f.destroyed(), true);
 });
-test("thermal cargo uses rendered receipt length instead of the configured roll length", async () => {
+test("thermal cargo and driver reports use rendered content length instead of the configured roll length", async () => {
   let options;
   class Window {
     webContents = {
@@ -50,10 +50,12 @@ test("thermal cargo uses rendered receipt length instead of the configured roll 
     printerPreferences: async () => ({ widthMm: 80, heightMm: 130, orientation: "portrait" }),
     timeoutMs: 20,
   });
-  const profile = resolveProfile("cargo_thermal", { rollHeightMm: 130 });
-  await print("<main data-miro-print-root>cargo</main>", "selected", profile);
-  assert.equal(options.pageSize.height, contentHeightMm(240, profile) * 1000);
-  assert.ok(options.pageSize.height < 130000);
+  for (const documentType of ["cargo_thermal", "driver_performance"]) {
+    const profile = resolveProfile(documentType, { rollHeightMm: 130 });
+    await print("<main class=\"report\">content</main>", "selected", profile);
+    assert.equal(options.pageSize.height, contentHeightMm(240, profile) * 1000);
+    assert.ok(options.pageSize.height < 130000);
+  }
 });
 for (const stage of ["load", "prepare", "callback", "throw", "reject"]) test(`print ${stage} failure releases its window and rejects`, async () => {
   const f = fixture(stage); await assert.rejects(f.print()); assert.equal(f.destroyed(), true);
