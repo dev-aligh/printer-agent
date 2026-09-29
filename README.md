@@ -1,6 +1,6 @@
 # Mirocab Print Agent
 
-نسخهٔ فعلی: **1.9.0، فقط پورتابل ۳۲ بیتی** — [دانلود فایل اجرایی](https://github.com/dev-aligh/printer-agent/raw/refs/heads/main/v1.9.0/Mirocab%20Print%20Agent%201.9.0-ia32.exe)
+نسخهٔ فعلی: **1.10.0، فقط پورتابل ۳۲ بیتی** — [دانلود فایل اجرایی](https://github.com/dev-aligh/printer-agent/raw/refs/heads/main/v1.10.0/Mirocab%20Print%20Agent%201.10.0-ia32.exe)
 
 تنظیمات، کاغذ و جهت روی همان پرینتر در ویندوز اعمال می‌شوند. اگر `statement_a5` روی A5 افقی تنظیم شود، Agent قالب portrait صورت را روی کاغذ افقی می‌چرخاند تا پس از چرخاندن برگه، همان چیدمان عمودی خوانا باشد. دکمهٔ پیش‌فرض، تنظیم پایهٔ درایور همان پرینتر را بازیابی می‌کند.
 

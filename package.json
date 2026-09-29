@@ -1,6 +1,6 @@
 {
   "name": "mirocab-print-agent",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "private": true,
   "description": "Mirocab local silent-print agent for Windows 7 SP1 and Windows 10",
   "main": "src/main.js",
