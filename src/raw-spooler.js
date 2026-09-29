@@ -4,23 +4,28 @@
 const { spawn } = require("child_process");
 const path = require("path");
 function printRaw(printer, bytes, resourcesPath) {
-  return new Promise((resolve, reject) => {
-    const helper = path.join(resourcesPath, "RawPrint.exe");
-    const child = spawn(helper, ["--printer", printer], { windowsHide: true });
-    child.once("error", () => reject(new Error("RawPrint.exe در نصب Agent موجود نیست.")));
-    child.stdin.end(bytes);
-    child.once("exit", (code) => code === 0 ? resolve() : reject(new Error(`چاپ خام با کد ${code} ناموفق بود.`)));
-  });
+  return rawHelper(resourcesPath, ["--printer", printer], bytes);
 }
-function rawHelper(resourcesPath, args, input = "") {
+function rawHelper(resourcesPath, args, input = "", { spawnProcess = spawn, timeoutMs = 15000 } = {}) {
   return new Promise((resolve, reject) => {
     const helper = path.join(resourcesPath, "RawPrint.exe");
-    const child = spawn(helper, args, { windowsHide: true }); let output = ""; let error = "";
-    child.once("error", () => reject(new Error("RawPrint.exe در نصب Agent موجود نیست.")));
+    const child = spawnProcess(helper, args, { windowsHide: true }); let output = ""; let error = "";
+    let settled = false;
+    const finish = (failure) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      failure ? reject(failure) : resolve(output);
+    };
+    const timer = setTimeout(() => {
+      finish(new Error("مهلت پاسخ درایور چاپگر تمام شد. اتصال چاپگر و Windows Print Spooler را بررسی کنید."));
+      child.kill();
+    }, timeoutMs);
+    child.once("error", (cause) => finish(new Error(`اجرای RawPrint.exe ناموفق بود: ${cause.message}`)));
     child.stdin.on("error", () => {});
     child.stdin.end(input);
     child.stdout.on("data", (chunk) => { output += chunk; }); child.stderr.on("data", (chunk) => { error += chunk; });
-    child.once("exit", (code) => code === 0 ? resolve(output) : reject(new Error(error || `Windows Spooler با کد ${code} پاسخ داد.`)));
+    child.once("close", (code) => finish(code === 0 ? null : new Error(error || `Windows Spooler با کد ${code} پاسخ داد.`)));
   });
 }
 async function getJobs(printer, resourcesPath) { return JSON.parse(await rawHelper(resourcesPath, ["--jobs", printer])); }
@@ -30,4 +35,4 @@ async function printerPreferences(printer, resourcesPath, action = "read", setti
   if (!command) throw new Error("Invalid preference action");
   return JSON.parse((await rawHelper(resourcesPath, [command, printer], settings ? JSON.stringify(settings) : "")).replace(/^\uFEFF/, ""));
 }
-module.exports = { printRaw, getJobs, controlJob, printerPreferences };
+module.exports = { printRaw, getJobs, controlJob, printerPreferences, rawHelper };

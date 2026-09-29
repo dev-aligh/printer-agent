@@ -1,5 +1,7 @@
 "use strict";
 const path = require("path");
+const { createHtmlPrinter } = require("./html-printer");
+const { withDeadline } = require("./deadline");
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require("electron");
 const { createConfigStore } = require("./config-store");
 const { createApi } = require("./http-api");
@@ -23,53 +25,10 @@ function showSettings() {
 app.on("second-instance", () => showSettings());
 async function getPrinters() {
   const window = settingsWindow || new BrowserWindow({ show: false });
-  try { return await window.webContents.getPrintersAsync(); } finally { if (window !== settingsWindow) window.destroy(); }
+  try { return await withDeadline(() => window.webContents.getPrintersAsync(), 15000, "فهرست چاپگرها از ویندوز دریافت نشد."); } finally { if (window !== settingsWindow) window.destroy(); }
 }
 
-async function printHtml(html, deviceName, profile) {
-  // Read the selected queue's current Windows preferences, never reapply a document profile.
-  const device = await printerPreferences(deviceName, resourcesPath);
-  const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
-  try {
-    await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
-    if (device.widthMm < 110) {
-      // The panel owns the document layout, but a browser's default body
-      // margin or a template's top spacing becomes wasted thermal paper.
-      // Normalize only the print origin before handing the page to Windows.
-      await win.webContents.executeJavaScript(`
-        (() => {
-          const style = document.createElement("style");
-          style.textContent = "@page{margin:0!important}html,body{margin-top:0!important;padding-top:0!important}[data-miro-print-root],body>:first-child{margin-top:0!important;padding-top:0!important}";
-          document.head.appendChild(style);
-        })()
-      `);
-    }
-    const pageSize = { width: Math.round(device.widthMm * 1000), height: Math.round(device.heightMm * 1000) };
-    const margins = { marginType: "custom", top: profile.marginTop * 1000, right: profile.marginRight * 1000, bottom: profile.marginBottom * 1000, left: profile.marginLeft * 1000 };
-    // Some Windows drivers never call Chromium's print callback when their
-    // spooler connection has failed.  Do not leave the settings UI (or API
-    // job) waiting forever in that case.
-    await new Promise((resolve, reject) => {
-      let settled = false;
-      const finish = (error) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeout);
-        error ? reject(error) : resolve();
-      };
-      const timeout = setTimeout(() => finish(new Error("چاپگر تا ۳۰ ثانیه پاسخی نداد. اتصال، روشن‌بودن چاپگر و Windows Print Spooler را بررسی کنید.")), 30_000);
-      try {
-        win.webContents.print({
-          silent: true, printBackground: true, deviceName,
-          landscape: device.orientation === "landscape", copies: 1,
-          scaleFactor: profile.scale, margins, pageSize
-        }, (ok, failure) => finish(ok ? null : new Error(failure || "Windows Spooler چاپ را نپذیرفت.")));
-      } catch (error) {
-        finish(error);
-      }
-    });
-  } finally { win.destroy(); }
-}
+const printHtml = createHtmlPrinter({ BrowserWindow, printerPreferences, resourcesPath });
 app.whenReady().then(async () => {
   if (!hasSingleInstanceLock) return;
   store = createConfigStore(app.getPath("userData"));

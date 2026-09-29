@@ -54,7 +54,7 @@
         <label>حاشیهٔ چپ (میلی‌متر)<input id="marginLeft" type="number" min="0" max="30" value="0"></label>
       </div>
       <div id="rollSettings" class="roll-settings" hidden>
-        <div class="roll-heading"><b>تنظیمات کاغذ رول</b><span>برای رول ۵۸ و ۸۰، عرض از استاندارد پرینتر گرفته می‌شود.</span></div>
+        <div class="roll-heading"><b>تنظیمات کاغذ رول</b><span>عرض سفارشی برای کاغذ «رول سفارشی» و طول برای کاغذهای رول استفاده می‌شود.</span></div>
         <div class="settings-grid">
           <label id="customRollWidthField">عرض رول سفارشی (میلی‌متر)<input id="rollWidthMm" type="number" min="30" max="220" value="80"></label>
           <label>طول رول (میلی‌متر)<input id="rollHeightMm" type="number" min="20" max="1000" value="130"></label>
@@ -70,10 +70,7 @@
       <button id="testProfile" class="secondary">تست چاپ با تنظیمات ویندوز</button>
     </section>
 
-    <section class="rules-card">
-      <div class="section-heading"><div class="section-icon">✓</div><div><h2>قواعد ثابت اسناد</h2><p>این قواعد هنگام ذخیره اعمال می‌شوند؛ چاپ از تنظیم فعلی پرینتر در ویندوز استفاده می‌کند.</p></div></div>
-      <table><thead><tr><th>سند</th><th>کاغذ و جهت</th><th>قاعده</th></tr></thead><tbody><tr><td>صورت‌وضعیت</td><td>A5 / عمودی</td><td><span class="fixed-badge">همیشه ثابت</span></td></tr><tr><td>بارنامه A5</td><td>A5 / افقی</td><td><span class="fixed-badge">همیشه ثابت</span></td></tr><tr><td>بلیت مسافر</td><td>A5 یا رول حرارتی</td><td>تنظیم هر سیستم</td></tr><tr><td>بارنامه حرارتی</td><td>رول ۵۸ یا ۸۰</td><td>یک job برای هر نسخه</td></tr><tr><td>گزارش راننده</td><td>A5 یا رول حرارتی</td><td>Cut در انتهای ESC/POS</td></tr></tbody></table>
-    </section>
+
   </main>
   <div id="printerModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="printerModalTitle">
     <div class="modal-backdrop" data-close-printer-modal></div>

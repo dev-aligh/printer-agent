@@ -18,8 +18,8 @@ test("saving a profile changes only the selected printer among five", async () =
   assert.equal(f.calls.length, 1);
   assert.equal(f.calls[0][0], "P1");
   assert.equal(f.calls[0][1], "apply");
-  assert.equal(f.calls[0][2].paper, "A5");
-  assert.equal(f.calls[0][2].orientation, "portrait");
+  assert.equal(f.calls[0][2].paper, "thermal-80");
+  assert.equal(f.calls[0][2].orientation, "landscape");
   assert.deepEqual(f.state().profileSettings.cargo_a5, { printer: "P2", scale: 80 });
   assert.deepEqual(Object.keys(f.state().printerSettings), ["P1"]);
 });
