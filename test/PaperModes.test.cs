@@ -11,6 +11,11 @@ class PaperModeTestEntry {
 partial class RawPrint {
  static void Expect(bool condition,string message) { if(!condition) throw new Exception(message); }
  public static void TestPaperModes() {
+  double width,height;
+  RequestedDimensions(new PreferenceInput { paper="A5",rollWidthMm=Double.NaN,rollHeightMm=-1 },out width,out height);
+  Expect(width==148 && height==210,"Roll settings affected A5.");
+  RequestedDimensions(new PreferenceInput { paper="thermal-58",rollWidthMm=220,rollHeightMm=130 },out width,out height);
+  Expect(width==58 && height==130,"Custom width affected standard roll.");
   var a4=new PaperSize("A4",827,1169); a4.RawKind=9;
   var a5=new PaperSize("Driver A5",583,827); a5.RawKind=301;
   var papers=new [] { a4,a5 };
@@ -53,6 +58,11 @@ partial class RawPrint {
    ConfigureMode(mode,input,null,80,130);
    Expect(Marshal.ReadInt16(mode,Paper)==0,"Custom roll used a named paper code.");
    ValidateAccepted(DescribeMode(mode,papers,a4),input,80,130);
+   input=new PreferenceInput { paper="A5",orientation="landscape",rollWidthMm=80,rollHeightMm=130 };
+   ConfigureMode(mode,input,a5,148,210);
+   Expect((Marshal.ReadInt32(mode,Fields)&(4|8))==0,"Roll flags leaked into A5 after switching.");
+   Expect(Marshal.ReadInt16(mode,Width)==0 && Marshal.ReadInt16(mode,Length)==0,"Roll dimensions leaked into A5 after switching.");
+   ValidateAccepted(DescribeMode(mode,papers,a4),input,148,210);
    Console.WriteLine("PASS: native A5 form, conflicting fields, landscape dimensions, real substitutions, custom roll.");
   } finally { Marshal.FreeHGlobal(mode); }
  }

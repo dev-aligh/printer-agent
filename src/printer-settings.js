@@ -1,6 +1,13 @@
 "use strict";
 const { resolveProfile } = require("./profiles");
 
+function driverSettings(profile) {
+  const settings = { paper: profile.paper, orientation: profile.orientation };
+  if (profile.paper !== "A5") settings.rollHeightMm = profile.rollHeightMm;
+  if (profile.paper === "custom-roll") settings.rollWidthMm = profile.rollWidthMm;
+  return settings;
+}
+
 function createPrinterSettings({ store, getPrinters, preferences }) {
   let pending = Promise.resolve();
   const serialize = (operation) => {
@@ -17,7 +24,7 @@ function createPrinterSettings({ store, getPrinters, preferences }) {
       const profile = resolveProfile(profileId, setting);
       await validate(setting.printer);
       // No other printer is enumerated for mutation. Persist only after Windows accepts it.
-      const actual = await preferences(setting.printer, "apply", profile);
+      const actual = await preferences(setting.printer, "apply", driverSettings(profile));
       const config = store.get();
       return store.update({
         profileSettings: { ...config.profileSettings, [profileId]: { ...profile, printer: setting.printer } },

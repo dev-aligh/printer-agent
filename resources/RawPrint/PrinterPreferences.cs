@@ -53,6 +53,15 @@ partial class RawPrint {
    if(SameSize(paper.Width*0.254,paper.Height*0.254,width,height)) return paper;
   return null;
  }
+ static void RequestedDimensions(PreferenceInput input, out double width, out double height) {
+  if(input.paper=="A5") { width=148; height=210; return; }
+  if(input.paper=="thermal-58") width=58;
+  else if(input.paper=="thermal-80") width=80;
+  else if(input.paper=="custom-roll") width=input.rollWidthMm;
+  else throw new Exception("Invalid paper type.");
+  height=input.rollHeightMm;
+  if(width<30 || width>220 || height<20 || height>1000 || Double.IsNaN(width) || Double.IsNaN(height)) throw new Exception("Invalid paper dimensions.");
+ }
  static PaperDescription DescribeMode(IntPtr mode, IEnumerable<PaperSize> papers, PaperSize fallback) {
   int fields=Marshal.ReadInt32(mode,Fields);
   int code=(ushort)Marshal.ReadInt16(mode,Paper);
@@ -111,14 +120,15 @@ partial class RawPrint {
    } else if(action=="--apply-preferences") {
     var input=json.Deserialize<PreferenceInput>(Console.In.ReadToEnd());
     if(input==null || (input.orientation!="portrait" && input.orientation!="landscape")) throw new Exception("Invalid orientation.");
-    bool a5=input.paper=="A5";
-    double width=a5?148:input.paper=="thermal-58"?58:input.paper=="thermal-80"?80:input.rollWidthMm;
-    double height=a5?210:input.rollHeightMm;
-    if(width<30 || width>220 || height<20 || height>1000 || Double.IsNaN(width) || Double.IsNaN(height)) throw new Exception("Invalid paper dimensions.");
+    double width,height;
+    RequestedDimensions(input,out width,out height);
     var printerSettings=new PrinterSettings(); printerSettings.PrinterName=printer;
     var papers=new List<PaperSize>();
     foreach(PaperSize supported in printerSettings.PaperSizes) papers.Add(supported);
     var paper=SelectPaper(papers,width,height);
+    // A5 is always a named sheet, even if the driver omits it from its list.
+    // Let the driver validate standard A5; never fall back to custom-roll fields.
+    if(paper==null && input.paper=="A5") { paper=new PaperSize("A5",583,827); paper.RawKind=11; }
     int size=DocumentProperties(IntPtr.Zero,handle,printer,IntPtr.Zero,IntPtr.Zero,0);
     if(size<166) throw new Exception("Cannot read printer driver settings (DocumentProperties="+size+", Windows="+Marshal.GetLastWin32Error()+").");
     mode=Marshal.AllocHGlobal(size);

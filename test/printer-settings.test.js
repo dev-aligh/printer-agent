@@ -48,3 +48,17 @@ test("concurrent saves preserve both mappings", async () => {
   assert.equal(f.state().profileSettings.statement_a5.printer, "P1");
   assert.equal(f.state().profileSettings.cargo_a5.printer, "P2");
 });
+
+test("switching between roll and A5 sends only active paper settings to the driver", async () => {
+  const f = fixture();
+  const settings = { printer: "P1", orientation: "landscape", rollWidthMm: 76, rollHeightMm: 900, cutMode: "at-end", scale: 85, marginTop: 10 };
+  for (const paper of ["custom-roll", "A5", "thermal-58", "thermal-80", "A5"]) {
+    await f.service.save("statement_a5", { ...settings, paper });
+    const expected = { paper, orientation: "landscape" };
+    if (paper !== "A5") expected.rollHeightMm = 900;
+    if (paper === "custom-roll") expected.rollWidthMm = 76;
+    assert.deepEqual(f.calls.at(-1), ["P1", "apply", expected]);
+    assert.equal(f.state().profileSettings.statement_a5.rollWidthMm, 76);
+    assert.equal(f.state().profileSettings.statement_a5.cutMode, "at-end");
+  }
+});
