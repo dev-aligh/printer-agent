@@ -48,6 +48,16 @@ partial class RawPrint {
    bool rejected=false;
    try { ValidateAccepted(DescribeMode(mode,papers,a4),input,148,210); } catch(Exception error) { rejected=error.Message.Contains("driver returned"); }
    Expect(rejected,"Actual paper substitution was accepted.");
+   // Reproduce the user's A5 label with stale Letter dimensions. It must not
+   // be accepted just because its name says A5; retry uses explicit A5 size.
+   input.orientation="portrait";
+   Marshal.WriteInt16(mode,Orientation,1);
+   Marshal.WriteInt16(mode,Width,2159); Marshal.WriteInt16(mode,Length,2794);
+   Expect(!AcceptedSize(DescribeMode(mode,papers,a4),input,148,210),"A5-labelled Letter accepted.");
+   ConfigureMode(mode,input,null,148,210);
+   Expect((Marshal.ReadInt32(mode,Fields)&(2|4|8))==(4|8),"Explicit A5 retry has conflicting flags.");
+   ValidateAccepted(DescribeMode(mode,papers,a4),input,148,210);
+   input.orientation="landscape";
    ConfigureMode(mode,input,a5,148,210);
    Marshal.WriteInt16(mode,Orientation,1);
    rejected=false;

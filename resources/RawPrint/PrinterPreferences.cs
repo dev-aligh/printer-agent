@@ -110,6 +110,9 @@ partial class RawPrint {
     "Printer driver does not support the requested settings. Requested: {0} x {1} mm, {2}; driver returned: {3} ({4:0.##} x {5:0.##} mm), {6}. Check the printer's paper/tray settings.",
     width,height,input.orientation,actual.paperName,actual.widthMm,actual.heightMm,actual.orientation));
  }
+ static bool AcceptedSize(PaperDescription actual, PreferenceInput input, double width, double height) {
+  return actual.orientation==input.orientation && SameSize(actual.widthMm,actual.heightMm,width,height);
+ }
  static void Preferences(string printer, string action) {
   IntPtr handle; Check(OpenPreferencesPrinter(printer,out handle,IntPtr.Zero));
   IntPtr mode=IntPtr.Zero;
@@ -140,8 +143,20 @@ partial class RawPrint {
     try {
      if(DocumentProperties(IntPtr.Zero,handle,printer,mode,current,current==IntPtr.Zero?2:10)!=1) throw new Exception("Cannot load printer driver settings.");
     } finally { if(current!=IntPtr.Zero) Marshal.FreeHGlobal(current); }
+    // Keep a pristine driver mode: a failed negotiation can rewrite private
+    // fields as well as public dimensions. Never retry from that rejected mode.
+    byte[] baseline=new byte[size]; Marshal.Copy(mode,baseline,0,size);
     ConfigureMode(mode,input,paper,width,height);
-    if(DocumentProperties(IntPtr.Zero,handle,printer,mode,mode,10)!=1) throw new Exception("Printer driver rejected the settings.");
+    int negotiated=DocumentProperties(IntPtr.Zero,handle,printer,mode,mode,10);
+    if(paper!=null && (negotiated!=1 || !AcceptedSize(Describe(printer,mode),input,width,height))) {
+     // Some drivers keep Letter dimensions when given only an A5 form code.
+     // Negotiate the exact requested physical dimensions without a competing
+     // named-paper selection. Only persist if the driver actually accepts them.
+     Marshal.Copy(baseline,0,mode,size);
+     ConfigureMode(mode,input,null,width,height);
+     negotiated=DocumentProperties(IntPtr.Zero,handle,printer,mode,mode,10);
+    }
+    if(negotiated!=1) throw new Exception("Printer driver rejected the settings.");
     // Do not report success when a driver silently substitutes another paper.
     ValidateAccepted(Describe(printer,mode),input,width,height);
     WriteMode(handle,mode);
