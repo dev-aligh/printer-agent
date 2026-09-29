@@ -57,7 +57,18 @@ partial class RawPrint {
    input=new PreferenceInput { paper="custom-roll",orientation="portrait" };
    ConfigureMode(mode,input,null,80,130);
    Expect(Marshal.ReadInt16(mode,Paper)==0,"Custom roll used a named paper code.");
+   Expect((Marshal.ReadInt32(mode,Fields)&2)==0,"Custom roll still requests a named paper.");
+   Expect((Marshal.ReadInt32(mode,Fields)&(4|8))==(4|8),"Custom roll dimensions not marked as active.");
    ValidateAccepted(DescribeMode(mode,papers,a4),input,80,130);
+   foreach(string roll in new [] { "thermal-58","thermal-80","custom-roll" }) {
+    foreach(string orientation in new [] { "portrait","landscape" }) {
+     input=new PreferenceInput { paper=roll,orientation=orientation,rollWidthMm=76,rollHeightMm=200 };
+     RequestedDimensions(input,out width,out height);
+     ConfigureMode(mode,input,null,width,height);
+     Expect((Marshal.ReadInt32(mode,Fields)&(2|4|8))==(4|8),"Roll fields conflict: "+roll);
+     ValidateAccepted(DescribeMode(mode,papers,a4),input,width,height);
+    }
+   }
    input=new PreferenceInput { paper="A5",orientation="landscape",rollWidthMm=80,rollHeightMm=130 };
    ConfigureMode(mode,input,a5,148,210);
    Expect((Marshal.ReadInt32(mode,Fields)&(4|8))==0,"Roll flags leaked into A5 after switching.");

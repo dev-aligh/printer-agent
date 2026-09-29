@@ -90,8 +90,11 @@ partial class RawPrint {
  static void ConfigureMode(IntPtr mode, PreferenceInput input, PaperSize paper, double width, double height) {
   int fields=Marshal.ReadInt32(mode,Fields);
   fields &= ~0x10000;
-  fields |= 1|2;
-  if(paper!=null) fields &= ~(4|8); else fields |= 4|8;
+  fields |= 1;
+  // Named paper and explicit dimensions are alternative selection modes.
+  // Do not mark dmPaperSize as supplied when its value is zero (custom size).
+  if(paper!=null) { fields |= 2; fields &= ~(4|8); }
+  else { fields &= ~2; fields |= 4|8; }
   Marshal.WriteInt32(mode,Fields,fields);
   Marshal.WriteInt16(mode,Orientation,(short)(input.orientation=="landscape"?2:1));
   Marshal.WriteInt16(mode,Paper,(short)(paper==null?0:paper.RawKind));
