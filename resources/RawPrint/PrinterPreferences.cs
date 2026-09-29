@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Drawing.Printing;
 using System.Runtime.InteropServices;
 using System.Web.Script.Serialization;
+using System.Collections.Generic;
 
 partial class RawPrint {
  [DllImport("winspool.drv", EntryPoint="OpenPrinterW", CharSet=CharSet.Unicode, SetLastError=true)]
@@ -14,6 +15,12 @@ partial class RawPrint {
  [DllImport("winspool.drv", EntryPoint="DocumentPropertiesW", CharSet=CharSet.Unicode, SetLastError=true)]
  static extern int DocumentProperties(IntPtr window, IntPtr handle, string name, IntPtr output, IntPtr input, int mode);
  public class PreferenceInput { public string paper { get; set; } public string orientation { get; set; } public double rollWidthMm { get; set; } public double rollHeightMm { get; set; } }
+ class PaperDescription {
+  public string orientation { get; set; }
+  public double widthMm { get; set; }
+  public double heightMm { get; set; }
+  public string paperName { get; set; }
+ }
 
  // DEVMODEW public-header offsets. The allocation includes all private driver data.
  const int Fields=72, Orientation=76, Paper=78, Length=80, Width=82;
@@ -38,14 +45,58 @@ partial class RawPrint {
   try { Marshal.WriteIntPtr(info,mode); Check(SetPreferences(handle,9,info,0)); }
   finally { Marshal.FreeHGlobal(info); }
  }
- static object Describe(string printer, IntPtr mode) {
+ static bool SameSize(double width, double height, double expectedWidth, double expectedHeight) {
+  return Math.Abs(width-expectedWidth)<=1 && Math.Abs(height-expectedHeight)<=1;
+ }
+ static PaperSize SelectPaper(IEnumerable<PaperSize> papers, double width, double height) {
+  foreach(var paper in papers)
+   if(SameSize(paper.Width*0.254,paper.Height*0.254,width,height)) return paper;
+  return null;
+ }
+ static PaperDescription DescribeMode(IntPtr mode, IEnumerable<PaperSize> papers, PaperSize fallback) {
+  int fields=Marshal.ReadInt32(mode,Fields);
+  int code=(ushort)Marshal.ReadInt16(mode,Paper);
+  PaperSize selected=null;
+  if((fields&2)!=0 && code!=0)
+   foreach(var paper in papers) if(paper.RawKind==code) { selected=paper; break; }
+  // Resolve the driver's own paper code before falling back to PageSettings,
+  // which may otherwise describe the queue's default paper.
+  double width=(selected??fallback).Width*0.254, height=(selected??fallback).Height*0.254;
+  double reportedWidth=width, reportedHeight=height;
+  if((fields&8)!=0 && Marshal.ReadInt16(mode,Width)>0) reportedWidth=Marshal.ReadInt16(mode,Width)/10.0;
+  if((fields&4)!=0 && Marshal.ReadInt16(mode,Length)>0) reportedHeight=Marshal.ReadInt16(mode,Length)/10.0;
+  // Recognize landscape dimensions only when they match the advertised form
+  // exactly after rotation. A genuinely different custom size must not pass.
+  bool rotated=selected!=null && Marshal.ReadInt16(mode,Orientation)==2 && SameSize(reportedWidth,reportedHeight,height,width);
+  if(!rotated) { width=reportedWidth; height=reportedHeight; }
+  return new PaperDescription { orientation=Marshal.ReadInt16(mode,Orientation)==2?"landscape":"portrait", widthMm=width, heightMm=height, paperName=(selected??fallback).PaperName };
+ }
+ static PaperDescription Describe(string printer, IntPtr mode) {
   var settings=new PrinterSettings(); settings.PrinterName=printer;
   var page=new PageSettings(settings); page.SetHdevmode(mode);
+  var papers=new List<PaperSize>();
+  foreach(PaperSize paper in settings.PaperSizes) papers.Add(paper);
+  return DescribeMode(mode,papers,page.PaperSize);
+ }
+ static void ConfigureMode(IntPtr mode, PreferenceInput input, PaperSize paper, double width, double height) {
   int fields=Marshal.ReadInt32(mode,Fields);
-  double width=page.PaperSize.Width*0.254, height=page.PaperSize.Height*0.254;
-  if((fields&8)!=0 && Marshal.ReadInt16(mode,Width)>0) width=Marshal.ReadInt16(mode,Width)/10.0;
-  if((fields&4)!=0 && Marshal.ReadInt16(mode,Length)>0) height=Marshal.ReadInt16(mode,Length)/10.0;
-  return new { orientation=Marshal.ReadInt16(mode,Orientation)==2?"landscape":"portrait", widthMm=width, heightMm=height, paperName=page.PaperSize.PaperName };
+  fields &= ~0x10000;
+  fields |= 1|2;
+  if(paper!=null) fields &= ~(4|8); else fields |= 4|8;
+  Marshal.WriteInt32(mode,Fields,fields);
+  Marshal.WriteInt16(mode,Orientation,(short)(input.orientation=="landscape"?2:1));
+  Marshal.WriteInt16(mode,Paper,(short)(paper==null?0:paper.RawKind));
+  // Do not send competing custom dimensions with a driver-advertised form.
+  Marshal.WriteInt16(mode,Width,paper==null?(short)Math.Round(width*10):(short)0);
+  Marshal.WriteInt16(mode,Length,paper==null?(short)Math.Round(height*10):(short)0);
+  // dmFormName starts at byte 102 and contains 32 UTF-16 characters.
+  for(int i=0;i<32;i++) Marshal.WriteInt16(mode,102+i*2,0);
+ }
+ static void ValidateAccepted(PaperDescription actual, PreferenceInput input, double width, double height) {
+  if(actual.orientation!=input.orientation || !SameSize(actual.widthMm,actual.heightMm,width,height))
+   throw new Exception(String.Format(System.Globalization.CultureInfo.InvariantCulture,
+    "Printer driver does not support the requested settings. Requested: {0} x {1} mm, {2}; driver returned: {3} ({4:0.##} x {5:0.##} mm), {6}. Check the printer's paper/tray settings.",
+    width,height,input.orientation,actual.paperName,actual.widthMm,actual.heightMm,actual.orientation));
  }
  static void Preferences(string printer, string action) {
   IntPtr handle; Check(OpenPreferencesPrinter(printer,out handle,IntPtr.Zero));
@@ -64,31 +115,22 @@ partial class RawPrint {
     double width=a5?148:input.paper=="thermal-58"?58:input.paper=="thermal-80"?80:input.rollWidthMm;
     double height=a5?210:input.rollHeightMm;
     if(width<30 || width>220 || height<20 || height>1000 || Double.IsNaN(width) || Double.IsNaN(height)) throw new Exception("Invalid paper dimensions.");
-    int paperCode=a5?11:0;
-    if(!a5) {
-     var printerSettings=new PrinterSettings(); printerSettings.PrinterName=printer;
-     foreach(PaperSize supported in printerSettings.PaperSizes)
-      if(Math.Abs(supported.Width*0.254-width)<0.5 && Math.Abs(supported.Height*0.254-height)<0.5) { paperCode=supported.RawKind; break; }
-    }
+    var printerSettings=new PrinterSettings(); printerSettings.PrinterName=printer;
+    var papers=new List<PaperSize>();
+    foreach(PaperSize supported in printerSettings.PaperSizes) papers.Add(supported);
+    var paper=SelectPaper(papers,width,height);
     int size=DocumentProperties(IntPtr.Zero,handle,printer,IntPtr.Zero,IntPtr.Zero,0);
-    if(size<84) throw new Exception("Cannot read printer driver settings (DocumentProperties="+size+", Windows="+Marshal.GetLastWin32Error()+").");
+    if(size<166) throw new Exception("Cannot read printer driver settings (DocumentProperties="+size+", Windows="+Marshal.GetLastWin32Error()+").");
     mode=Marshal.AllocHGlobal(size);
-    if(DocumentProperties(IntPtr.Zero,handle,printer,mode,IntPtr.Zero,2)!=1) throw new Exception("Cannot load printer driver settings.");
-    int fields=Marshal.ReadInt32(mode,Fields);
-    // Clear form-name selection so it cannot override the requested paper size.
-    fields &= ~0x10000;
-    fields |= 1|2;
-    if(paperCode!=0) fields &= ~(4|8); else fields |= 4|8;
-    Marshal.WriteInt32(mode,Fields,fields);
-    Marshal.WriteInt16(mode,Orientation,(short)(input.orientation=="landscape"?2:1));
-    Marshal.WriteInt16(mode,Paper,(short)paperCode);
-    Marshal.WriteInt16(mode,Width,(short)Math.Round(width*10));
-    Marshal.WriteInt16(mode,Length,(short)Math.Round(height*10));
+    IntPtr current=ReadMode(handle,9);
+    if(current==IntPtr.Zero) current=ReadMode(handle,8);
+    try {
+     if(DocumentProperties(IntPtr.Zero,handle,printer,mode,current,current==IntPtr.Zero?2:10)!=1) throw new Exception("Cannot load printer driver settings.");
+    } finally { if(current!=IntPtr.Zero) Marshal.FreeHGlobal(current); }
+    ConfigureMode(mode,input,paper,width,height);
     if(DocumentProperties(IntPtr.Zero,handle,printer,mode,mode,10)!=1) throw new Exception("Printer driver rejected the settings.");
     // Do not report success when a driver silently substitutes another paper.
-    var accepted=json.Deserialize<System.Collections.Generic.Dictionary<string,object>>(json.Serialize(Describe(printer,mode)));
-    if((string)accepted["orientation"]!=input.orientation || Math.Abs(Convert.ToDouble(accepted["widthMm"])-width)>1 || Math.Abs(Convert.ToDouble(accepted["heightMm"])-height)>1)
-     throw new Exception("Printer driver does not support this paper size or orientation. Select a supported size in printer preferences.");
+    ValidateAccepted(Describe(printer,mode),input,width,height);
     WriteMode(handle,mode);
    }
    if(mode!=IntPtr.Zero) { Marshal.FreeHGlobal(mode); mode=IntPtr.Zero; }

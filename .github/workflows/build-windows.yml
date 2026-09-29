@@ -32,6 +32,10 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Test Windows paper settings
+        shell: powershell
+        run: .\scripts\test-paper-modes.ps1
+
       - name: Package 32-bit portable Windows app
         run: npm run package:win
 
@@ -49,4 +53,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$env:GITHUB_REF_NAME" dist/*.exe --title "Mirocab Print Agent $env:GITHUB_REF_NAME" --notes-file docs/RELEASE-0.1.6.fa.md --verify-tag
+          gh release create "$env:GITHUB_REF_NAME" dist/*.exe --title "Mirocab Print Agent $env:GITHUB_REF_NAME" --notes-file docs/RELEASE-0.1.7.fa.md --verify-tag
