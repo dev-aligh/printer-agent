@@ -1,12 +1,14 @@
 "use strict";
 const { withDeadline } = require("./deadline");
+const { prepareHtmlForPrint } = require("./statement-layout");
 function createHtmlPrinter({ BrowserWindow, printerPreferences, resourcesPath, timeoutMs = 30000 }) {
 return async function printHtml(html, deviceName, profile) {
   // Read the selected queue's current Windows preferences, never reapply a document profile.
   const device = await printerPreferences(deviceName, resourcesPath);
   const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true, backgroundThrottling: false } });
   try {
-    await withDeadline(() => win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html)), timeoutMs, "بارگذاری صفحهٔ چاپ بیش از حد طول کشید.");
+    const printableHtml = prepareHtmlForPrint(html, profile, device);
+    await withDeadline(() => win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(printableHtml)), timeoutMs, "بارگذاری صفحهٔ چاپ بیش از حد طول کشید.");
     await withDeadline(() => win.webContents.executeJavaScript("document.fonts.ready.then(() => true)"), timeoutMs, "آماده‌سازی صفحهٔ چاپ بیش از حد طول کشید.");
     if (device.widthMm < 110) {
       // The panel owns the document layout, but a browser's default body

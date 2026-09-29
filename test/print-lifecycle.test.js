@@ -7,7 +7,7 @@ const { createHtmlPrinter } = require("../src/html-printer");
 const { resolveProfile } = require("../src/profiles");
 
 function fixture(stage) {
-  let destroyed = false; let options;
+  let destroyed = false; let options; let loadedUrl;
   class Window {
     webContents = {
       executeJavaScript: () => stage === "prepare" ? new Promise(() => {}) : Promise.resolve(true),
@@ -18,12 +18,12 @@ function fixture(stage) {
         callback(stage !== "reject", "driver rejected");
       }
     };
-    loadURL() { return stage === "load" ? new Promise(() => {}) : Promise.resolve(); }
+    loadURL(url) { loadedUrl = url; return stage === "load" ? new Promise(() => {}) : Promise.resolve(); }
     isDestroyed() { return destroyed; }
     destroy() { destroyed = true; }
   }
   const print = createHtmlPrinter({ BrowserWindow: Window, printerPreferences: async () => ({ widthMm: 148, heightMm: 210, orientation: "landscape" }), timeoutMs: 20 });
-  return { print: () => print("<p>test</p>", "selected", resolveProfile("statement_a5", { marginTop: 10 })), destroyed: () => destroyed, options: () => options };
+  return { print: () => print("<html><head></head><body><p>test</p></body></html>", "selected", resolveProfile("statement_a5", { marginTop: 10 })), destroyed: () => destroyed, options: () => options, loadedUrl: () => loadedUrl };
 }
 test("printing uses pixel margins, micron paper and selected Windows orientation", async () => {
   const f = fixture(); await f.print();
@@ -31,6 +31,7 @@ test("printing uses pixel margins, micron paper and selected Windows orientation
   assert.equal(f.options().landscape, true);
   assert.equal(f.options().margins.top, 10 * 96 / 25.4);
   assert.deepEqual(f.options().pageSize, { width: 148000, height: 210000 });
+  assert.match(decodeURIComponent(f.loadedUrl()), /mirocab-landscape-statement-layout/);
   assert.equal(f.destroyed(), true);
 });
 for (const stage of ["load", "prepare", "callback", "throw", "reject"]) test(`print ${stage} failure releases its window and rejects`, async () => {
