@@ -3,20 +3,21 @@
 // `statements-ui.hbs` is a portrait A5 template. When the selected Windows
 // queue is Landscape, Chromium gives us a 210 × 148 mm page instead. Keep the
 // backend template untouched and rotate its whole portrait canvas onto that
-// page. The physical sheet can then be turned counter-clockwise to portrait
-// and read exactly like a normal statement.
+// page. Rotate counter-clockwise so the template top lands on the left edge
+// of landscape paper; turning the physical sheet clockwise makes it a normal
+// upright portrait statement.
 const LANDSCAPE_STATEMENT_STYLE = `
 <style id="mirocab-landscape-statement-layout">
   @page { size: A5 landscape !important; margin: 0 !important; }
   html { width: 210mm !important; height: 148mm !important; overflow: hidden !important; }
   body {
     position: absolute !important;
-    top: 0 !important;
-    left: 210mm !important;
+    top: 148mm !important;
+    left: 0 !important;
     width: 148mm !important;
     min-height: 210mm !important;
     margin: 0 !important;
-    transform: rotate(90deg) !important;
+    transform: rotate(-90deg) !important;
     transform-origin: top left !important;
   }
 </style>`;
