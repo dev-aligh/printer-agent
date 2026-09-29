@@ -3,10 +3,11 @@ const path = require("path");
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require("electron");
 const { createConfigStore } = require("./config-store");
 const { createApi } = require("./http-api");
-const { getJobs, controlJob } = require("./raw-spooler");
+const { getJobs, controlJob, printerPreferences } = require("./raw-spooler");
+const { createPrinterSettings } = require("./printer-settings");
 const { resolveProfile } = require("./profiles");
 
-let settingsWindow; let tray; let api; let store;
+let settingsWindow; let tray; let api; let store; let printerSettings;
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) app.quit();
 const resourcesPath = app.isPackaged
@@ -26,10 +27,12 @@ async function getPrinters() {
 }
 
 async function printHtml(html, deviceName, profile) {
+  // Read the selected queue's current Windows preferences, never reapply a document profile.
+  const device = await printerPreferences(deviceName, resourcesPath);
   const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
   try {
     await win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
-    if (profile.paper !== "A5") {
+    if (device.widthMm < 110) {
       // The panel owns the document layout, but a browser's default body
       // margin or a template's top spacing becomes wasted thermal paper.
       // Normalize only the print origin before handing the page to Windows.
@@ -41,12 +44,7 @@ async function printHtml(html, deviceName, profile) {
         })()
       `);
     }
-    const width = profile.paper === "thermal-58" ? 58 : profile.paper === "thermal-80" ? 80 : profile.rollWidthMm;
-    // Thermal drivers commonly accept their configured roll height but can
-    // hang without invoking Electron's callback for a document-sized custom
-    // height. Keep the page size stable and let the driver handle the roll.
-    const rollHeightMm = profile.paper === "A5" ? null : profile.rollHeightMm;
-    const pageSize = profile.paper === "A5" ? "A5" : { width: width * 1000, height: rollHeightMm * 1000 };
+    const pageSize = { width: Math.round(device.widthMm * 1000), height: Math.round(device.heightMm * 1000) };
     const margins = { marginType: "custom", top: profile.marginTop * 1000, right: profile.marginRight * 1000, bottom: profile.marginBottom * 1000, left: profile.marginLeft * 1000 };
     // Some Windows drivers never call Chromium's print callback when their
     // spooler connection has failed.  Do not leave the settings UI (or API
@@ -63,7 +61,7 @@ async function printHtml(html, deviceName, profile) {
       try {
         win.webContents.print({
           silent: true, printBackground: true, deviceName,
-          landscape: profile.orientation === "landscape", copies: 1,
+          landscape: device.orientation === "landscape", copies: 1,
           scaleFactor: profile.scale, margins, pageSize
         }, (ok, failure) => finish(ok ? null : new Error(failure || "Windows Spooler چاپ را نپذیرفت.")));
       } catch (error) {
@@ -75,6 +73,7 @@ async function printHtml(html, deviceName, profile) {
 app.whenReady().then(async () => {
   if (!hasSingleInstanceLock) return;
   store = createConfigStore(app.getPath("userData"));
+  printerSettings = createPrinterSettings({ store, getPrinters, preferences: (printer, action, settings) => printerPreferences(printer, resourcesPath, action, settings) });
   api = createApi({ config: store, getPrinters, printHtml, resourcesPath });
   api.once("error", (error) => {
     const message = error.code === "EADDRINUSE"
@@ -91,7 +90,10 @@ app.whenReady().then(async () => {
   tray.on("click", showSettings); showSettings();
 });
 ipcMain.handle("config:get", () => store.get());
-ipcMain.handle("config:save", (_, patch) => store.update(patch));
+ipcMain.handle("config:save", (_, patch) => store.update({ enabled: Boolean(patch.enabled) }));
+ipcMain.handle("profile:save", (_, profileId, setting) => printerSettings.save(profileId, setting));
+ipcMain.handle("printer:reset", (_, printer) => printerSettings.reset(printer));
+ipcMain.handle("printer:preferences", (_, printer) => printerPreferences(printer, resourcesPath));
 ipcMain.handle("printers:list", getPrinters);
 ipcMain.handle("printer:jobs", (_, printer) => getJobs(printer, resourcesPath));
 ipcMain.handle("printer:job-control", (_, printer, jobId, action) => controlJob(printer, jobId, action, resourcesPath));

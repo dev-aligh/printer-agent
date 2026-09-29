@@ -18,6 +18,13 @@ function createConfigStore(userDataPath) {
   const save = () => fs.writeFileSync(file, JSON.stringify(data, null, 2), { mode: 0o600 });
   // Electron 22 embeds Node 16, which does not provide structuredClone.
   const snapshot = () => JSON.parse(JSON.stringify(data));
-  return { get: snapshot, update: (patch) => { data = { ...data, ...patch }; save(); return snapshot(); }, save };
+  return { get: snapshot, update: (patch) => {
+    const next = { ...data, ...patch };
+    const temporary = file + ".tmp";
+    fs.writeFileSync(temporary, JSON.stringify(next, null, 2), { mode: 0o600 });
+    fs.renameSync(temporary, file);
+    data = next;
+    return snapshot();
+  }, save };
 }
 module.exports = { createConfigStore };

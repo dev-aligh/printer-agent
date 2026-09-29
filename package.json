@@ -1,6 +1,6 @@
 {
   "name": "mirocab-print-agent",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Mirocab local silent-print agent for Windows 7 SP1 and Windows 10",
   "main": "src/main.js",
@@ -16,12 +16,50 @@
     "appId": "ir.mirocab.printagent",
     "productName": "Mirocab Print Agent",
     "asar": true,
-    "files": ["src/**/*", "README.md", "LICENSE"],
-    "win": { "signAndEditExecutable": false, "target": [{ "target": "nsis", "arch": ["x64", "ia32"] }, { "target": "portable", "arch": ["x64", "ia32"] }] },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "runAfterFinish": true, "installerIcon": "resources/app-icon.ico", "uninstallerIcon": "resources/app-icon.ico", "artifactName": "${productName} Setup ${version}-${arch}.${ext}" },
-    "portable": { "artifactName": "${productName} ${version}-${arch}.${ext}" },
-    "extraResources": [{ "from": "resources", "to": "resources", "filter": ["**/*"] }]
+    "files": [
+      "src/**/*",
+      "README.md",
+      "LICENSE"
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "ia32"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "installerIcon": "resources/app-icon.ico",
+      "uninstallerIcon": "resources/app-icon.ico",
+      "artifactName": "${productName} Setup ${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName} ${version}-${arch}.${ext}"
+    },
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   },
-  "engines": { "node": ">=22 <23" },
-  "devDependencies": { "electron": "22.3.27", "electron-builder": "24.13.3" }
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "devDependencies": {
+    "electron": "22.3.27",
+    "electron-builder": "24.13.3"
+  }
 }

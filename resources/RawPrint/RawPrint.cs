@@ -1,6 +1,6 @@
 // Build with .NET Framework 4.7.2 on Windows: csc /target:exe /out:RawPrint.exe RawPrint.cs
 using System; using System.IO; using System.Runtime.InteropServices; using System.Text;
-class RawPrint {
+partial class RawPrint {
  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)] class DOCINFOA { [MarshalAs(UnmanagedType.LPStr)] public string pDocName; [MarshalAs(UnmanagedType.LPStr)] public string pOutputFile; [MarshalAs(UnmanagedType.LPStr)] public string pDataType; }
  [DllImport("winspool.Drv", CharSet=CharSet.Ansi, SetLastError=true)] static extern bool OpenPrinter(string n, out IntPtr h, IntPtr d);
  [DllImport("winspool.Drv", SetLastError=true)] static extern bool ClosePrinter(IntPtr h);
@@ -13,6 +13,11 @@ class RawPrint {
  [DllImport("winspool.Drv", SetLastError=true)] static extern bool SetJob(IntPtr h, int jobId, int level, IntPtr pJob, int command);
  const int JOB_CONTROL_PAUSE=1, JOB_CONTROL_RESUME=2, JOB_CONTROL_CANCEL=3;
  static int Main(string[] a) {
+  if(a.Length==2 && (a[0]=="--preferences" || a[0]=="--apply-preferences" || a[0]=="--reset-preferences")) {
+   Console.OutputEncoding=new System.Text.UTF8Encoding(false);
+   try { Preferences(a[1], a[0]); return 0; }
+   catch(Exception e) { Console.Error.Write(e.Message); return 1; }
+  }
   if(a.Length==2 && a[0]=="--printer") return PrintRaw(a[1]);
   if(a.Length==2 && a[0]=="--jobs") return Jobs(a[1]);
   if(a.Length==3 && a[0]=="--job") return Control(a[1],a[2]);

@@ -39,7 +39,7 @@
     <section>
       <div class="section-heading">
         <div class="section-icon">⚙</div>
-        <div><h2>تنظیمات چاپ اسناد</h2><p>پرینتر و تنظیمات هر نوع سند فقط داخل Agent ذخیره می‌شوند و پنل اجازهٔ تغییرشان را ندارد.</p></div>
+        <div><h2>تنظیمات چاپ اسناد</h2><p>با ذخیره، کاغذ و جهت روی پرینتر انتخاب‌شده در ویندوز اعمال می‌شود. اگر چند سند از یک پرینتر استفاده کنند، آخرین تنظیم ذخیره‌شده مشترک است.</p></div>
       </div>
       <div class="settings-grid">
         <label>نوع سند<select id="profile"><option value="statement_a5">صورت‌وضعیت</option><option value="cargo_a5">بارنامه A5</option><option value="passenger_ticket">بلیت مسافر</option><option value="cargo_thermal">بارنامه حرارتی</option><option value="driver_performance">گزارش عملکرد راننده</option></select></label>
@@ -62,13 +62,16 @@
         </div>
         <p class="roll-hint">Cut فقط وقتی قابل اجراست که پنل دادهٔ RAW/ESC-POS بفرستد و پرینتر آن را پشتیبانی کند. چاپ HTML از طریق درایور ویندوز انجام می‌شود.</p>
       </div>
+      <p id="printerPreferenceStatus" class="rule-note" aria-live="polite"></p>
+      <p>تعداد نسخه، Scale و حاشیه‌ها تنظیمات چاپ ایجنت هستند. پیش‌فرض، تنظیم پایهٔ درایور همین پرینتر در ویندوز را بازیابی می‌کند.</p>
       <p id="profileRule" class="rule-note"></p>
-      <button id="saveProfile" class="primary-action">ذخیرهٔ تنظیمات این سند</button>
-      <button id="testProfile" class="secondary">تست با همین پروفایل ذخیره‌شده</button>
+      <button id="saveProfile" class="primary-action">ذخیره و اعمال روی پرینتر</button>
+      <button id="resetPrinter" class="secondary">تنظیمات پیش‌فرض پرینتر</button>
+      <button id="testProfile" class="secondary">تست چاپ با تنظیمات ویندوز</button>
     </section>
 
     <section class="rules-card">
-      <div class="section-heading"><div class="section-icon">✓</div><div><h2>قواعد ثابت اسناد</h2><p>این قواعد برای جلوگیری از چاپ اشتباه، توسط Agent اعمال می‌شوند.</p></div></div>
+      <div class="section-heading"><div class="section-icon">✓</div><div><h2>قواعد ثابت اسناد</h2><p>این قواعد هنگام ذخیره اعمال می‌شوند؛ چاپ از تنظیم فعلی پرینتر در ویندوز استفاده می‌کند.</p></div></div>
       <table><thead><tr><th>سند</th><th>کاغذ و جهت</th><th>قاعده</th></tr></thead><tbody><tr><td>صورت‌وضعیت</td><td>A5 / عمودی</td><td><span class="fixed-badge">همیشه ثابت</span></td></tr><tr><td>بارنامه A5</td><td>A5 / افقی</td><td><span class="fixed-badge">همیشه ثابت</span></td></tr><tr><td>بلیت مسافر</td><td>A5 یا رول حرارتی</td><td>تنظیم هر سیستم</td></tr><tr><td>بارنامه حرارتی</td><td>رول ۵۸ یا ۸۰</td><td>یک job برای هر نسخه</td></tr><tr><td>گزارش راننده</td><td>A5 یا رول حرارتی</td><td>Cut در انتهای ESC/POS</td></tr></tbody></table>
     </section>
   </main>
