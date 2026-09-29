@@ -116,6 +116,7 @@ partial class RawPrint {
  static void Preferences(string printer, string action) {
   IntPtr handle; Check(OpenPreferencesPrinter(printer,out handle,IntPtr.Zero));
   IntPtr mode=IntPtr.Zero;
+  PreferenceInput requested=null;
   try {
    var json=new JavaScriptSerializer();
    if(action=="--reset-preferences") {
@@ -125,6 +126,7 @@ partial class RawPrint {
     WriteMode(handle,mode);
    } else if(action=="--apply-preferences") {
     var input=json.Deserialize<PreferenceInput>(Console.In.ReadToEnd());
+    requested=input;
     if(input==null || (input.orientation!="portrait" && input.orientation!="landscape")) throw new Exception("Invalid orientation.");
     double width,height;
     RequestedDimensions(input,out width,out height);
@@ -165,7 +167,14 @@ partial class RawPrint {
    mode=ReadMode(handle,9);
    if(mode==IntPtr.Zero) mode=ReadMode(handle,8);
    if(mode==IntPtr.Zero) throw new Exception("Printer preferences are unavailable.");
-   Console.Write(json.Serialize(Describe(printer,mode)));
+   var persisted=Describe(printer,mode);
+   // SetPrinter success alone does not prove the queue retained the request.
+   // Validate the actual persisted preferences before reporting save success.
+   if(requested!=null) {
+    double width,height; RequestedDimensions(requested,out width,out height);
+    ValidateAccepted(persisted,requested,width,height);
+   }
+   Console.Write(json.Serialize(persisted));
   } finally { if(mode!=IntPtr.Zero) Marshal.FreeHGlobal(mode); ClosePrinter(handle); }
  }
 }
